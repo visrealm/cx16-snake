@@ -39,7 +39,115 @@ gameLoop:
 
 	bra waitForVsync
 
+doInput:
+ 
+  jsr JOYSTICK_GET
+  bit #JOY_UP
+  bne .testDown
+  lda ZP_HEAD_CELL_X
+  +qPush ZP_QUEUE_X_INDEX
+
+  dec ZP_HEAD_CELL_Y
+  lda ZP_HEAD_CELL_Y
+  +qPush ZP_QUEUE_Y_INDEX
+
+  lda ZP_CURRENT_DIRECTION
+  and #3
+  asl
+  asl
+  ora #DIR_UP
+  +qBack ZP_QUEUE_D_INDEX
+  sta (ZP_QUEUE_D), y
+  lda #DIR_UP << 2 | DIR_UP
+  sta ZP_CURRENT_DIRECTION
+  +qPush ZP_QUEUE_D_INDEX
+  rts
+.testDown:
+  bit #JOY_DOWN
+  bne .testRight
+  
+  lda ZP_HEAD_CELL_X
+  +qPush ZP_QUEUE_X_INDEX
+
+  inc ZP_HEAD_CELL_Y
+  lda ZP_HEAD_CELL_Y
+  +qPush ZP_QUEUE_Y_INDEX
+
+  lda ZP_CURRENT_DIRECTION
+  and #3
+  asl
+  asl
+  ora #DIR_DOWN
+  +qBack ZP_QUEUE_D_INDEX
+  sta (ZP_QUEUE_D), y
+  lda #DIR_DOWN << 2 | DIR_DOWN
+  sta ZP_CURRENT_DIRECTION
+  +qPush ZP_QUEUE_D_INDEX
+  rts
+.testRight:
+  bit #JOY_RIGHT
+  bne .testLeft
+  inc ZP_HEAD_CELL_X
+  lda ZP_HEAD_CELL_X
+  +qPush ZP_QUEUE_X_INDEX
+
+  lda ZP_HEAD_CELL_Y
+  +qPush ZP_QUEUE_Y_INDEX
+
+  lda ZP_CURRENT_DIRECTION
+  and #3
+  asl
+  asl
+  ora #DIR_RIGHT
+  +qBack ZP_QUEUE_D_INDEX
+  sta (ZP_QUEUE_D), y
+  lda #DIR_RIGHT << 2 | DIR_RIGHT
+  sta ZP_CURRENT_DIRECTION
+  +qPush ZP_QUEUE_D_INDEX
+  rts
+.testLeft:
+  bit #JOY_LEFT
+  bne .doneTests
+  dec ZP_HEAD_CELL_X
+  lda ZP_HEAD_CELL_X
+  +qPush ZP_QUEUE_X_INDEX
+
+  lda ZP_HEAD_CELL_Y
+  +qPush ZP_QUEUE_Y_INDEX
+
+  lda ZP_CURRENT_DIRECTION
+  and #3
+  asl
+  asl
+  ora #DIR_LEFT
+  +qBack ZP_QUEUE_D_INDEX
+  sta (ZP_QUEUE_D), y
+  lda #DIR_LEFT << 2 | DIR_LEFT
+  sta ZP_CURRENT_DIRECTION
+  +qPush ZP_QUEUE_D_INDEX
+  rts
+.doneTests:
+;  inc ZP_HEAD_CELL_X
+  lda ZP_HEAD_CELL_X
+  +qPush ZP_QUEUE_X_INDEX
+
+  lda ZP_HEAD_CELL_Y
+  +qPush ZP_QUEUE_Y_INDEX
+
+  lda ZP_CURRENT_DIRECTION
+  and #3
+  sta ZP_CURRENT_DIRECTION
+  asl
+  asl
+  ora ZP_CURRENT_DIRECTION
+  sta ZP_CURRENT_DIRECTION
+  +qPush ZP_QUEUE_D_INDEX
+  rts
+
+
 updateFrame:
+
+  jsr doInput
 
   ldx ZP_QUEUE_X_INDEX
   jsr qSize
@@ -91,16 +199,6 @@ updateFrame:
   +qPop ZP_QUEUE_X_INDEX
   +qPop ZP_QUEUE_Y_INDEX
   +qPop ZP_QUEUE_D_INDEX
-
-  inc ZP_HEAD_CELL_X
-  lda ZP_HEAD_CELL_X
-  +qPush ZP_QUEUE_X_INDEX
-
-  lda ZP_HEAD_CELL_Y
-  +qPush ZP_QUEUE_Y_INDEX
-
-  lda #DIR_RIGHT << 2 | DIR_RIGHT
-  +qPush ZP_QUEUE_D_INDEX
 
   lda #8
   sta ZP_ANIM_INDEX

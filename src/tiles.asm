@@ -290,14 +290,14 @@ tileBodyRight     +tileDef   15, SNAKE_ADDR, 3,  SNAKE_PAL, 0
                   +tileDef   15, SNAKE_ADDR, 3,  SNAKE_PAL, 0
                   +tileDef   15, SNAKE_ADDR, 19, SNAKE_PAL, 0
                   +tileDef   15, SNAKE_ADDR, 19, SNAKE_PAL, 0
-tileTailLeft      +tileDef   17, SNAKE_ADDR, 31, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   17, SNAKE_ADDR, 15, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   17, SNAKE_ADDR, 30, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   17, SNAKE_ADDR, 14, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
 tileTailUp:       +tileDef   16, SNAKE_ADDR, 4,  SNAKE_PAL, 0
                   +tileDef   16, SNAKE_ADDR, 20, SNAKE_PAL, 0
                   +tileDef   16, SNAKE_ADDR, 5,  SNAKE_PAL, 0                  
                   +tileDef   16, SNAKE_ADDR, 21, SNAKE_PAL, 0                  
+tileTailLeft      +tileDef   17, SNAKE_ADDR, 31, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   17, SNAKE_ADDR, 15, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   17, SNAKE_ADDR, 30, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   17, SNAKE_ADDR, 14, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
 tileTailDown:     +tileDef   18, SNAKE_ADDR, 21, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
                   +tileDef   18, SNAKE_ADDR, 5,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
                   +tileDef   18, SNAKE_ADDR, 20, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
