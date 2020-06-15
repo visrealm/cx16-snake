@@ -1,0 +1,2367 @@
+
+; ******** Source: src\snake.asm
+     1                          ; Snake - Commander X16
+     2                          ;
+     3                          ; Copyright (c) 2020 Troy Schrapel
+     4                          ;
+     5                          ; This code is licensed under the MIT license
+     6                          ;
+     7                          ; https://github.com/visrealm/cx16-snake
+     8                          ;
+     9                          ;
+    10                          
+    11                          !cpu 65c02
+    12                          
+
+; ******** Source: src\common\bootstrap.asm
+     1                          ; Commander X16
+     2                          ;
+     3                          ; ACME assembler bootstrap for 6502
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          ;
+    12                          
+    13                          ; standard bootstrap
+    14                          ; generate SYS 2064 ($810)
+    15                          
+    16                          *=$0801			; Assembled code should start at $0801
+    17                          
+    18                          			; (where BASIC programs start)
+    19                          			; The real program starts at $0810 = 2064
+    20                                
+    21  0801 0c08               !byte $0C,$08		; $080C - pointer to next line of BASIC code
+    22  0803 0a00               !byte $0A,$00		; 2-byte line number ($000A = 10)
+    23  0805 9e                 !byte $9E		; SYS BASIC token
+    24  0806 20                 !byte $20		; [space]
+    25  0807 32303634           !text "2064"	; $32="2",$30="0",$36="6",$34="4"
+    26                          			; (ASCII encoded nums for dec starting addr)
+    27  080b 000000             !byte $00,$00,$00	
+    28                          
+
+; ******** Source: src\snake.asm
+    13                          
+
+; ******** Source: src\common\kernal\constants.asm
+     1                          ; Commander X16
+     2                          ;
+     3                          ; CX16 Kernal Constants
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          
+    12                          CMN_KERNAL_CONSTANTS_ASM_ = 1
+    13                          
+    14                          !cpu 65c02
+    15                          
+    16                          ; temporary address used where self-modifying code will update an instruction
+    17                          SELF_MODIFY_MSB_ADDR = $ee00
+    18                          SELF_MODIFY_ADDR     = $eeee
+    19                          
+    20                          
+    21                          CHROUT      = $FFD2	; CHROUT outputs a character (C64 Kernal API)
+    22                          CHRIN       = $FFCF		; CHRIN read from default input
+    23                          
+    24                          SETLFS			= $FFBA
+    25                          SETNAM			= $FFBD
+    26                          LOAD			  = $FFD5
+    27                          OPEN        = $FFC0
+    28                          CLOSE       = $FFC3
+    29                          
+    30                          BANKED_RAM_START    = $A000
+    31                          BANKED_RAM_END      = $BFFF
+    32                          ROM_BANK            = $9F60
+    33                          RAM_BANK            = $9F61
+    34                          
+    35                          ; have a separate one for sanity checks
+    36                          ; so I can find the others I use temporarily
+    37                          ; easier
+    38                          !macro dbgSanityCheckBreak {
+    39                            !ifdef SANITY { !byte $ff }
+    40                          }
+    41                          
+    42                          !macro dbgBreak {
+    43                            !ifdef DEBUG { !byte $ff }
+    44                          }
+    45                          
+    46                          !macro setRamBank bank {
+    47                            lda #bank
+    48                            sta RAM_BANK
+    49                          }
+    50                          
+    51                          !macro setRomBank bank {
+    52                            lda #bank
+    53                            sta ROM_BANK
+    54                          }
+    55                          
+    56                          !macro ramBankSanityCheck bank {
+    57                            !ifdef SANITY {
+    58                              phy
+    59                              ldy RAM_BANK
+    60                              cpy #bank
+    61                              beq +
+    62                              !byte $ff
+    63                          +
+    64                              ply
+    65                            }
+    66                          }
+    67                          
+    68                          
+    69                          ; Joystick constants
+    70                          ; ----------------------------------------------------------------------------
+    71                          ; subroutines
+    72                          
+    73                          JOYSTICK_SCAN = $ff53
+    74                          
+    75                          ; Get joystick state
+    76                          ; A = buttons
+    77                          ; X = xtended buttons (SNES)
+    78                          ; Y = device present ($00) or not ($FF)
+    79                          JOYSTICK_GET  = $ff56
+    80                          
+    81                          ; constants
+    82                          JOY_RIGHT  = %00000001
+    83                          JOY_LEFT   = %00000010
+    84                          JOY_DOWN   = %00000100
+    85                          JOY_UP     = %00001000
+    86                          JOY_START  = %00010000
+    87                          JOY_SELECT = %00100000
+    88                          JOY_B      = %01000000
+    89                          JOY_A      = %10000000
+    90                          
+    91                          JOYSTICK_PRESENT     = $00
+    92                          JOYSTICK_NOT_PRESENT = $ff
+    93                          
+    94                          CLOCK_GET_DATE_TIME = $ff50
+    95                          
+    96                          ; Virtual registers
+    97                          ; ----------------------------------------------------------------------------
+    98                          R0  = $02
+    99                          R0L = R0
+   100                          R0H = R0 + 1
+   101                          R1  = $04
+   102                          R1L = R1
+   103                          R1H = R1 + 1
+   104                          R2  = $06
+   105                          R2L = R2
+   106                          R2H = R2 + 1
+   107                          R3  = $08
+   108                          R3L = R3
+   109                          R3H = R3 + 1
+   110                          R4  = $0a
+   111                          R4L = R4
+   112                          R4H = R4 + 1
+   113                          R5  = $0c
+   114                          R5L = R5
+   115                          R5H = R5 + 1
+   116                          R6  = $0e
+   117                          R6L = R6
+   118                          R6H = R6 + 1
+   119                          R7  = $10
+   120                          R7L = R7
+   121                          R7H = R7 + 1
+   122                          R8  = $12
+   123                          R8L = R8
+   124                          R8H = R8 + 1
+   125                          R9  = $14
+   126                          R9L = R9
+   127                          R9H = R9 + 1
+   128                          R10  = $16
+   129                          R10L = R10
+   130                          R10H = R10 + 1
+   131                          R11  = $18
+   132                          R11L = R11
+   133                          R11H = R11 + 1
+
+; ******** Source: src\snake.asm
+    14                          
+    15                          
+    16                          ; -----------------------------------------------------------------------------
+    17                          ; constants
+    18                          ; -----------------------------------------------------------------------------
+    19                          ADDR_QUEUE_HEADERS = $6000 ; 4KB
+    20                          
+    21                          
+    22                          ; -----------------------------------------------------------------------------
+    23                          ; program entry
+    24                          ; -----------------------------------------------------------------------------
+    25                          
+    26  0810 78                   sei
+    27                          
+    28                            ; turn off the display while we're setting things up
+    29  0811 20eb0b               jsr disableDisplay
+    30                          
+    31                            ; initialise queues
+    32  0814 20af08               jsr qInit
+    33                          
+    34  0817 20240c               jsr loadTiles
+    35                          
+    36                            ; set up and enable the display
+    37  081a 20f10b               jsr configDisplay
+    38                          
+    39                            ; register the vsync interrupt handler
+    40  081d 20bd0b               jsr registerVsyncIrq
+    41                          
+    42  0820 58                   cli
+    43                          
+    44                            ; enter the game loop
+    45  0821 4ce00b               jmp waitForVsync
+    46                          
+    47  0824 60                   rts
+    48                          
+    49                          
+
+; ******** Source: src\common\util.asm
+     1                          ; Commander X16
+     2                          ;
+     3                          ; Utility subroutines and macros
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          ;
+    12                          
+    13                          
+    14                          CMN_UTIL_ASM_ = 1
+    15                          
+    16                          
+    17                          ; -----------------------------------------------------------------------------
+    18                          ; +dec16: decement a 16-bit value
+    19                          ; -----------------------------------------------------------------------------
+    20                          ; Inputs:
+    21                          ;  addr: address containing LSB of value to decrement
+    22                          ; -----------------------------------------------------------------------------
+    23                          !macro dec16 addr {
+    24                            lda addr
+    25                            bne +
+    26                            dec addr + 1
+    27                          +
+    28                            dec addr
+    29                          }
+    30                          
+    31                          ; -----------------------------------------------------------------------------
+    32                          ; +inc16: increment a 16-bit value
+    33                          ; -----------------------------------------------------------------------------
+    34                          ; Inputs:
+    35                          ;  addr: address containing LSB of value to increment
+    36                          ; -----------------------------------------------------------------------------
+    37                          !macro inc16 addr {
+    38                            inc addr
+    39                            bne +
+    40                            inc addr + 1
+    41                          +
+    42                          }
+    43                          
+    44                          ; -----------------------------------------------------------------------------
+    45                          ; +cmp16: compare two 16-bit values in memory
+    46                          ; -----------------------------------------------------------------------------
+    47                          ; Inputs:
+    48                          ;  left:  address containing LSB of left value to comapre
+    49                          ;  right: address containing LSB of right value to comapre
+    50                          ; -----------------------------------------------------------------------------
+    51                          !macro cmp16 left, right {
+    52                            lda left + 1
+    53                            cmp right + 1
+    54                          	bne +
+    55                          	lda left
+    56                          	cmp right
+    57                          +
+    58                          }
+    59                          
+    60                          ; -----------------------------------------------------------------------------
+    61                          ; +cmp16: compare two 16-bit values in memory
+    62                          ; -----------------------------------------------------------------------------
+    63                          ; Inputs:
+    64                          ;  value: immediate value to compare
+    65                          ;  x:     msb
+    66                          ;  a:     lsb
+    67                          ; -----------------------------------------------------------------------------
+    68                          !macro cmp16xa value {
+    69                            cpx #>value
+    70                          	bne +
+    71                          	cmp #<value
+    72                          +
+    73                          }
+    74                          
+    75                          ; -----------------------------------------------------------------------------
+    76                          ; +sub16: subtract 16 bit numbers
+    77                          ; -----------------------------------------------------------------------------
+    78                          ; Inputs:
+    79                          ;  left:  address containing LSB of left value
+    80                          ;  right: address containing LSB of right value
+    81                          ; Outputs:
+    82                          ;  res:   address containing LSB of result
+    83                          ; -----------------------------------------------------------------------------
+    84                          !macro sub16 left, right, res {
+    85                            sec
+    86                            lda left
+    87                            sbc right
+    88                            sta res
+    89                            lda left + 1
+    90                            sbc right + 1
+    91                            sta res + 1
+    92                          }
+    93                          
+    94                          ; -----------------------------------------------------------------------------
+    95                          ; +sub16: subtract 16 bit numbers - result in ax registers
+    96                          ; -----------------------------------------------------------------------------
+    97                          ; Inputs:
+    98                          ;  left:  address containing LSB of left value
+    99                          ;  right: address containing LSB of right value
+   100                          ; Outputs:
+   101                          ;  a:     result msb
+   102                          ;  x:     result lsb
+   103                          ; -----------------------------------------------------------------------------
+   104                          !macro sub16 left, right {
+   105                            sec
+   106                            lda left
+   107                            sbc right
+   108                            tax
+   109                            lda left + 1
+   110                            sbc right + 1
+   111                          }
+   112                          
+   113                          
+   114                          ; -----------------------------------------------------------------------------
+   115                          ; +subImm8From16: subtract an 8 bit number from a 16 bit number
+   116                          ; -----------------------------------------------------------------------------
+   117                          ; Inputs:
+   118                          ;  left:  address containing LSB of left value
+   119                          ;  right: immediate 8-bit value
+   120                          ; Outputs:
+   121                          ;  res:   address containing LSB of result
+   122                          ; -----------------------------------------------------------------------------
+   123                          !macro subImm8From16 left, right, res {
+   124                            sec
+   125                            lda left
+   126                            sbc #right
+   127                            sta res
+   128                            lda left + 1
+   129                            sbc #0
+   130                            sta res + 1
+   131                          }
+   132                          
+   133                          ; -----------------------------------------------------------------------------
+   134                          ; +incBcd: increment a BCD byte (inc instruction doesn't work in bcd mode)
+   135                          ; -----------------------------------------------------------------------------
+   136                          ; Inputs:
+   137                          ;  addr:  address containing BCD value
+   138                          ; -----------------------------------------------------------------------------
+   139                          !macro incBcd addr {
+   140                            lda addr
+   141                            sed
+   142                            clc
+   143                            adc #1
+   144                            cld
+   145                            sta addr
+   146                          }
+   147                          
+   148                          ; -----------------------------------------------------------------------------
+   149                          ; +decBcd: decrement a BCD byte (inc instruction doesn't work in bcd mode)
+   150                          ; -----------------------------------------------------------------------------
+   151                          ; Inputs:
+   152                          ;  addr:  address containing BCD value
+   153                          ; -----------------------------------------------------------------------------
+   154                          !macro decBcd addr {
+   155                            lda addr
+   156                            sed
+   157                            sec
+   158                            sbc #1
+   159                            cld
+   160                            sta addr
+   161                          }
+   162                          
+   163                          ; -----------------------------------------------------------------------------
+   164                          ; bin2bcd8: convert an unsigned byte to a 2-digit bcd value
+   165                          ; -----------------------------------------------------------------------------
+   166                          ; Inputs:
+   167                          ;   A: value
+   168                          ; Outputs:
+   169                          ;   BCD value in R8
+   170                          ; -----------------------------------------------------------------------------
+   171                          bin2bcd8:
+   172  0825 8510                 sta R7L
+   173  0827 6412                 stz R8L
+   174  0829 6413                 stz R8H
+   175  082b a208                 ldx #8 
+   176  082d f8                   sed    
+   177                          .loop:
+   178  082e 0610                 asl R7L
+   179  0830 a512                 lda R8L
+   180  0832 6512                 adc R8L
+   181  0834 8512                 sta R8L
+   182  0836 a513                 lda R8H
+   183  0838 6513                 adc R8H
+   184  083a 8513                 sta R8H
+   185  083c ca                   dex
+   186  083d d0ef                 bne .loop
+   187  083f d8                   cld   
+   188  0840 60                   rts
+   189                          
+
+; ******** Source: src\snake.asm
+    50                          
+
+; ******** Source: src\common\file.asm
+     1                          ; Commander X16
+     2                          ;
+     3                          ; File utilities
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          ;
+    12                          
+    13                          
+    14                          CMN_FILE_ASM_ = 1
+    15                          
+    16                          ; -----------------------------------------------------------------------------
+    17                          ; setFile:   set the current file to work with
+    18                          ; -----------------------------------------------------------------------------
+    19                          ; filename:  address of zero-terminated string
+    20                          ; -----------------------------------------------------------------------------
+    21                          !macro setFile filename {
+    22                            ldx #<filename
+    23                            ldy #>filename
+    24                            jsr strLen
+    25                            jsr SETNAM
+    26                          }
+    27                          
+    28                          ; -----------------------------------------------------------------------------
+    29                          ; loadFile:   helper to load a file into ram
+    30                          ; -----------------------------------------------------------------------------
+    31                          ; filename:  zero-terminated string
+    32                          ; ramArress: address to load the raw data
+    33                          ; -----------------------------------------------------------------------------
+    34                          !macro loadFile filename, address {
+    35                          
+    36                            !if <address != $00 {
+    37                              !error "output address must be aligned to a page boundry"
+    38                            }
+    39                          
+    40                            +setFile filename
+    41                          
+    42                            lda #>address
+    43                          
+    44                            jsr loadFile
+    45                          }
+    46                          
+    47                          ; -----------------------------------------------------------------------------
+    48                          ; loadFile: load raw data file into ram
+    49                          ; -----------------------------------------------------------------------------
+    50                          ; Prerequisites:
+    51                          ;   SETNAME called 
+    52                          ; Inputs:
+    53                          ;   A: MSB of output address
+    54                          ; -----------------------------------------------------------------------------
+    55                          loadFile:
+    56  0841 48                   pha
+    57  0842 a901                 lda #$01
+    58  0844 a208                 ldx #$08      ; default to device 8
+    59  0846 a000                 ldy #$00      ; $00 means: load to new address
+    60  0848 20baff               jsr SETLFS
+    61                          
+    62  084b a202                 ldx #$02        ; account for address header 
+    63  084d 7a                   ply
+    64  084e a900                 lda #$00      ; $00 means: load to memory (not verify)
+    65  0850 20d5ff               jsr LOAD
+    66  0853 b005                 bcs .errorLoad    ; if carry set, a load error has happened
+    67                          
+    68  0855 8606                 stx R2L
+    69  0857 8407                 sty R2H
+    70                          
+    71  0859 60                   rts
+    72                          .errorLoad
+    73  085a 00                   brk
+    74  085b 60                   rts
+
+; ******** Source: src\snake.asm
+    51                          
+
+; ******** Source: src\common\memory.asm
+     1                          ; Commander X16
+     2                          ;
+     3                          ; Memory subroutines
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          ;
+    12                          
+    13                          CMN_MEMORY_ASM_ = 1
+    14                          
+    15                          !zone memcpy {
+    16                          
+    17                          ; -----------------------------------------------------------------------------
+    18                          ; memcpy: Copy a fixed number of bytes from src to dest
+    19                          ; -----------------------------------------------------------------------------
+    20                          ; Inputs:
+    21                          ;  src: source address
+    22                          ;  dst: destination address
+    23                          ;  cnt: number of bytes
+    24                          ; -----------------------------------------------------------------------------
+    25                          !macro memcpy src, dst, cnt {
+    26                            lda #<src
+    27                            sta R0L
+    28                            lda #>src
+    29                            sta R0H
+    30                          
+    31                            lda #<dst
+    32                            sta R1L
+    33                            lda #>dst
+    34                            sta R1H
+    35                          
+    36                            ldy #<cnt
+    37                          
+    38                            !if cnt <= 255 {
+    39                              jsr memcpySinglePage 
+    40                            } else {
+    41                              ldx #>cnt
+    42                              jsr memcpyMultiPage
+    43                            }
+    44                          }
+    45                          
+    46                          ; -----------------------------------------------------------------------------
+    47                          ; memcpySinglePage: Copy up to 255 bytes 
+    48                          ; -----------------------------------------------------------------------------
+    49                          ; Inputs:
+    50                          ;  R0: src address
+    51                          ;  R1: dst address
+    52                          ;  Y:  bytes
+    53                          ; -----------------------------------------------------------------------------
+    54                          memcpySinglePage:
+    55  085c b102                 lda (R0), Y
+    56  085e 9104                 sta (R1), Y
+    57  0860 88                   dey
+    58  0861 d0f9                 bne memcpySinglePage
+    59  0863 60                   rts
+    60                          ; -----------------------------------------------------------------------------
+    61                          
+    62                          
+    63                          ; -----------------------------------------------------------------------------
+    64                          ; memcpyMultiPage: Copy an up to 2^15 bytes 
+    65                          ; -----------------------------------------------------------------------------
+    66                          ; Inputs:
+    67                          ;  R0: src address
+    68                          ;  R1: dst address
+    69                          ;  X:  bytes MSB
+    70                          ;  Y:  bytes LSB
+    71                          ; -----------------------------------------------------------------------------
+    72                          memcpyMultiPage:
+    73  0864 a502                 lda R0L
+    74  0866 8d7908               sta .loadIns + 1
+    75  0869 a503                 lda R0H
+    76  086b 8d7a08               sta .loadIns + 2
+    77                          
+    78  086e a504                 lda R1L
+    79  0870 8d7c08               sta .storeIns + 1
+    80  0873 a505                 lda R1H
+    81  0875 8d7d08               sta .storeIns + 2
+    82                          
+    83                          .loadIns:
+    84  0878 b9eeee               lda SELF_MODIFY_ADDR, Y
+    85                            
+    86                          .storeIns:
+    87  087b 99eeee               sta SELF_MODIFY_ADDR, Y
+    88  087e 88                   dey
+    89  087f d0f7                 bne .loadIns
+    90  0881 ee7a08               inc .loadIns + 2
+    91  0884 ee7d08               inc .storeIns + 2
+    92  0887 ca                   dex
+    93  0888 d0ee                 bne .loadIns
+    94                          
+    95  088a 60                   rts
+    96                          ; -----------------------------------------------------------------------------
+    97                          
+    98                          }
+    99                          
+   100                          
+   101                          
+   102                          
+   103                          !zone mem2reg {
+   104                          
+   105                          ; -----------------------------------------------------------------------------
+   106                          ; mem2regSinglePage: Copy up to 255 bytes from ram to a register stream
+   107                          ; -----------------------------------------------------------------------------
+   108                          ; Inputs:
+   109                          ;  R0: src address
+   110                          ;  R1: output register address
+   111                          ;  X:  bytes
+   112                          ; -----------------------------------------------------------------------------
+   113                          !macro mem2regSinglePage outReg {
+   114                            ldy #0
+   115                          -
+   116                            lda (R0), y
+   117                            sta outReg
+   118                            iny
+   119                            dex
+   120                            bne -
+   121                          }
+   122                          ; -----------------------------------------------------------------------------
+   123                          
+   124                          
+   125                          ; -----------------------------------------------------------------------------
+   126                          ; mem2reg: Copy a fixed number of bytes from src to dest
+   127                          ; -----------------------------------------------------------------------------
+   128                          ; Inputs:
+   129                          ;  src: source address
+   130                          ;  dst: destination register stream address
+   131                          ;  cnt: number of bytes
+   132                          ; -----------------------------------------------------------------------------
+   133                          !macro mem2reg src, dst, cnt {
+   134                            lda #<src
+   135                            sta R0L
+   136                            lda #>src
+   137                            sta R0H
+   138                          
+   139                            ldx #<cnt
+   140                          
+   141                            !if cnt <= 255 {
+   142                              +mem2regSinglePage dst
+   143                            } else {
+   144                              lda #<dst
+   145                              sta mem2regMultiPageStoreIns + 1
+   146                              lda #>dst
+   147                              sta mem2regMultiPageStoreIns + 2
+   148                              ldy #>cnt
+   149                              jsr mem2regMultiPage
+   150                            }
+   151                          }
+   152                          
+   153                          
+   154                          ; -----------------------------------------------------------------------------
+   155                          ; mem2regMultiPage: Copy memory to a register stream 
+   156                          ; -----------------------------------------------------------------------------
+   157                          ; Inputs:
+   158                          ;  R0: src address
+   159                          ;  R1: output register address
+   160                          ;  X:  bytes LSB
+   161                          ;  Y:  bytes MSB
+   162                          ; -----------------------------------------------------------------------------
+   163                          mem2regMultiPage:
+   164  088b a502                 lda R0L
+   165  088d 8d9b08               sta .loadIns + 1
+   166  0890 a503                 lda R0H
+   167  0892 8d9c08               sta .loadIns + 2
+   168                          
+   169  0895 c8                   iny
+   170                            
+   171  0896 8a                   txa
+   172  0897 d001                 bne +
+   173  0899 88                   dey
+   174                          +
+   175                          
+   176                           
+   177                          .loadIns:
+   178  089a adffff               lda $ffff
+   179                            
+   180                          mem2regMultiPageStoreIns:
+   181  089d 8dffff               sta $ffff
+   182  08a0 ee9b08d003ee9c08     +inc16 .loadIns + 1
+   183  08a8 ca                   dex
+   184  08a9 d0ef                 bne .loadIns
+   185  08ab 88                   dey
+   186  08ac d0ec                 bne .loadIns
+   187                          
+   188  08ae 60                   rts
+   189                          ; -----------------------------------------------------------------------------
+   190                          
+
+; ******** Source: src\snake.asm
+    52                          
+
+; ******** Source: src\common\queue.asm
+     1                          ; Commander X16
+     2                          ;
+     3                          ; Queue management
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          
+    12                          CMN_QUEUE_ASM_ = 1
+    13                          
+    14                          !ifndef ADDR_QUEUE_HEADERS  { !error "Must set address for queue system to use: ADDR_QUEUE_HEADERS" }
+    15                          
+    16                          QUEUE_HEADER_SIZE = 4
+    17                          
+    18                          ; queue data structure (ADDR_QUEUE_HEADERS)
+    19                          ; 0:  count of queues created
+    20                          ; 1: unused
+    21                          ;   (below repeated for each queue created). page is >ADDR_QUEUE_HEADERS + queue index
+    22                          ; 2: head (page offset)
+    23                          ; 3: tail (page offset)
+    24                          
+    25                          QUEUE_OFFSET_HEAD = 0
+    26                          QUEUE_OFFSET_TAIL = 1
+    27                          
+    28                          ; -----------------------------------------------------------------------------
+    29                          ; qInit: Initialise queue manager
+    30                          ; -----------------------------------------------------------------------------
+    31                          qInit:
+    32  08af 9c0060               stz ADDR_QUEUE_HEADERS
+    33  08b2 60                   rts
+    34                          
+    35                          ; -----------------------------------------------------------------------------
+    36                          ; qInit: create a queue, store its id in address
+    37                          ; -----------------------------------------------------------------------------
+    38                          !macro qCreate index, addressMsb {
+    39                            jsr qCreate
+    40                            stx index
+    41                            sta addressMsb
+    42                          }
+    43                          
+    44                          ; -----------------------------------------------------------------------------
+    45                          ; qInit: create a queue
+    46                          ; -----------------------------------------------------------------------------
+    47                          ; Inputs: none
+    48                          ; Returns:
+    49                          ;   x: Queue index
+    50                          ;   a: Queue MSB
+    51                          ; -----------------------------------------------------------------------------
+    52                          qCreate:
+    53                            ; get the current number of queues
+    54                            ; increment it and store it
+    55  08b3 ad0060               lda ADDR_QUEUE_HEADERS
+    56  08b6 1a                   inc
+    57  08b7 aa                   tax
+    58  08b8 8e0060               stx ADDR_QUEUE_HEADERS
+    59                          
+    60                            ; now write the queue header (head and tail will be zero)
+    61  08bb 0a                   asl ; double it since there are 2 bytes per queue header
+    62  08bc a8                   tay
+    63  08bd a900                 lda #0
+    64  08bf 990060               sta ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD,y
+    65  08c2 990160               sta ADDR_QUEUE_HEADERS + QUEUE_OFFSET_TAIL,y
+    66  08c5 98                   tya
+    67  08c6 18                   clc
+    68  08c7 6960                 adc #>ADDR_QUEUE_HEADERS
+    69  08c9 60                   rts
+    70                          
+    71                          ; -----------------------------------------------------------------------------
+    72                          ; qPushBack: push a value onto the back of a queue
+    73                          ; -----------------------------------------------------------------------------
+    74                          ; inputs:
+    75                          ;   A: value to push
+    76                          ;   X: queue index
+    77                          ; -----------------------------------------------------------------------------
+    78                          qPush:
+    79                          qPushBack:
+    80  08ca 48                   pha
+    81  08cb da                   phx
+    82                            ; get queue tail
+    83                            
+    84  08cc 8a                   txa
+    85  08cd 0a                   asl
+    86  08ce 18                   clc
+    87  08cf 6960                 adc #>ADDR_QUEUE_HEADERS ; update code below to correct queue
+    88  08d1 8de108               sta .ldaOffsetPush + 2
+    89  08d4 8a                   txa   ; find the tail, place in y
+    90  08d5 0a                   asl
+    91  08d6 aa                   tax
+    92  08d7 bc0160               ldy ADDR_QUEUE_HEADERS + QUEUE_OFFSET_TAIL, x
+    93  08da fe0160               inc ADDR_QUEUE_HEADERS + QUEUE_OFFSET_TAIL, x
+    94  08dd fa                   plx
+    95  08de 68                   pla
+    96                          .ldaOffsetPush
+    97  08df 9900ee               sta SELF_MODIFY_MSB_ADDR, y
+    98  08e2 60                   rts
+    99                          
+   100                          ; -----------------------------------------------------------------------------
+   101                          ; qPopFront: pop a value from the from of the front of the queue
+   102                          ; -----------------------------------------------------------------------------
+   103                          ; inputs:
+   104                          ;   X: queue index
+   105                          ; returns
+   106                          ;   A: value
+   107                          ; -----------------------------------------------------------------------------
+   108                          qPop:
+   109                          qPopFront:
+   110  08e3 da                   phx
+   111  08e4 8a                   txa
+   112  08e5 18                   clc
+   113  08e6 6960                 adc #>ADDR_QUEUE_HEADERS ; update code below to correct queue
+   114  08e8 8df708               sta .ldaOffsetPop + 2
+   115  08eb 8a                   txa   ; find the head, place in y
+   116  08ec 0a                   asl
+   117  08ed aa                   tax
+   118  08ee bc0060               ldy ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD, x
+   119  08f1 fe0060               inc ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD, x
+   120  08f4 fa                   plx
+   121                          .ldaOffsetPop
+   122  08f5 b900ee               lda SELF_MODIFY_MSB_ADDR, y
+   123  08f8 60                   rts
+   124                          
+   125                          ; -----------------------------------------------------------------------------
+   126                          ; qSize: return the queue size
+   127                          ; -----------------------------------------------------------------------------
+   128                          ; inputs:
+   129                          ;   X: queue index
+   130                          ; returns
+   131                          ;   A: size
+   132                          ; -----------------------------------------------------------------------------
+   133                          qSize:
+   134  08f9 8a                   txa
+   135  08fa 0a                   asl ; get offset
+   136  08fb a8                   tay
+   137  08fc b90160               lda ADDR_QUEUE_HEADERS + QUEUE_OFFSET_TAIL, y
+   138  08ff 38                   sec
+   139  0900 f90060               sbc ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD, y
+   140  0903 60                   rts
+   141                          
+   142                          ; -----------------------------------------------------------------------------
+   143                          ; qIterate: set up to iterate a queue
+   144                          ; -----------------------------------------------------------------------------
+   145                          ; inputs:
+   146                          ;   X: queue index
+   147                          ; returns
+   148                          ;   A: MSB byte of queue
+   149                          ;   Y: starting offset (head index)
+   150                          ; -----------------------------------------------------------------------------
+   151                          qIterate:
+   152  0904 8a                   txa
+   153  0905 0a                   asl ; get offset
+   154  0906 a8                   tay
+   155  0907 b90060               lda ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD, y
+   156  090a a8                   tay
+   157  090b 8a                   txa
+   158  090c 0a                   asl
+   159  090d 18                   clc
+   160  090e 6960                 adc #>ADDR_QUEUE_HEADERS
+   161  0910 60                   rts
+
+; ******** Source: src\snake.asm
+    53                          
+
+; ******** Source: src\common\string.asm
+     1                          ; Commander X16
+     2                          ;
+     3                          ; String subroutines
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          ;
+    12                          
+    13                          
+    14                          CMN_STRING_ASM_ = 1
+    15                          
+    16                          
+    17                          ; -----------------------------------------------------------------------------
+    18                          ; strLen: Length of a null-terminated string
+    19                          ; -----------------------------------------------------------------------------
+    20                          ; Inputs:
+    21                          ;  X: address LSB
+    22                          ;  Y: address MSB
+    23                          ; Outputs:
+    24                          ;  A: length
+    25                          ; -----------------------------------------------------------------------------
+    26                          strLen:
+    27                          !zone
+    28  0911 5a                   phy
+    29  0912 8e1b09               stx .loop + 1        ; save string pointer LSB
+    30  0915 8c1c09               sty .loop + 2        ; save string pointer MSB
+    31  0918 a000                 ldy #0               ; starting string index
+    32                          
+    33                          .loop:
+    34  091a b9eeee               lda SELF_MODIFY_ADDR, y         ; get a character
+    35  091d f003                 beq .end             ; end of string
+    36  091f c8                   iny                  ; next
+    37  0920 80f8                 bra .loop
+    38                          
+    39                          .end:
+    40  0922 98                   tya
+    41  0923 7a                   ply
+    42  0924 60                   rts
+    43                          ; -----------------------------------------------------------------------------
+    44                          
+    45                          
+    46                          ; -----------------------------------------------------------------------------
+    47                          ; printStr: Print a null-terminated string
+    48                          ; -----------------------------------------------------------------------------
+    49                          ; Inputs:
+    50                          ;  X: address LSB
+    51                          ;  Y: address MSB
+    52                          ; -----------------------------------------------------------------------------
+    53                          printStr:
+    54                          !zone 
+    55  0925 8e2e09               stx .loop + 1        ; save string pointer LSB
+    56  0928 8c2f09               sty .loop + 2        ; save string pointer MSB
+    57  092b a000                 ldy #0               ; starting string index
+    58                          
+    59                          .loop:
+    60  092d b9eeee               lda SELF_MODIFY_ADDR, y         ; get a character
+    61  0930 f006                 beq .end             ; end of string
+    62                          
+    63  0932 20d2ff               jsr CHROUT           ; print character
+    64  0935 c8                   iny                  ; next
+    65  0936 80f5                 bra .loop
+    66                          
+    67                          .end:
+    68  0938 60                   rts
+    69                          ; -----------------------------------------------------------------------------
+    70                          
+    71                          
+    72                          !macro printStr stringAddr {
+    73                            ldx #<stringAddr
+    74                            ldy #>stringAddr
+    75                            jsr printStr
+
+; ******** Source: src\snake.asm
+    54                          
+    55                          
+
+; ******** Source: src\common\vera\constants.asm
+     1                          ; Commander X16
+     2                          ;
+     3                          ; Vera constants
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          
+    12                          CMN_VERA_CONSTANTS_ = 1
+    13                          
+    14                          VERA_ADDRx_L      = $9F20
+    15                          VERA_ADDRx_M      = $9F21
+    16                          VERA_ADDRx_H      = $9F22
+    17                          VERA_DATA0        = $9F23
+    18                          VERA_DATA1        = $9F24
+    19                          VERA_CTRL         = $9F25
+    20                          VERA_IEN          = $9F26
+    21                          VERA_ISR          = $9F27
+    22                          VERA_IRQLINE_L    = $9F28
+    23                          VERA_DC_VIDEO     = $9F29
+    24                          VERA_DC_HSCALE    = $9F2A
+    25                          VERA_DC_VSCALE    = $9F2B
+    26                          VERA_DC_BORDER    = $9F2C
+    27                          VERA_DC_HSTART    = $9F29
+    28                          VERA_DC_HSTOP     = $9F2A
+    29                          VERA_DC_VSTART    = $9F2B
+    30                          VERA_DC_VSTOP     = $9F2C
+    31                          VERA_L0_CONFIG    = $9F2D
+    32                          VERA_L0_MAPBASE   = $9F2E
+    33                          VERA_L0_TILEBASE  = $9F2F
+    34                          VERA_L0_HSCROLL_L = $9F30
+    35                          VERA_L0_HSCROLL_H = $9F31
+    36                          VERA_L0_VSCROLL_L = $9F32
+    37                          VERA_L0_VSCROLL_H = $9F33
+    38                          VERA_L1_CONFIG    = $9F34
+    39                          VERA_L1_MAPBASE   = $9F35
+    40                          VERA_L1_TILEBASE  = $9F36
+    41                          VERA_L1_HSCROLL_L = $9F37
+    42                          VERA_L1_HSCROLL_H = $9F38
+    43                          VERA_L1_VSCROLL_L = $9F39
+    44                          VERA_L1_VSCROLL_H = $9F3A
+    45                          VERA_AUDIO_CTRL   = $9F3B
+    46                          VERA_AUDIO_RATE   = $9F3C
+    47                          VERA_AUDIO_DATA   = $9F3D
+    48                          VERA_SPI_DATA     = $9F3E
+    49                          VERA_SPI_CTRL     = $9F3F
+    50                          
+    51                          ; ADDRx_H increments
+    52                          ; -----------------------------------------------------------------------------
+    53                          VERA_INCR_0   = $00
+    54                          VERA_INCR_1   = $10
+    55                          VERA_INCR_2   = $20
+    56                          VERA_INCR_4   = $30
+    57                          VERA_INCR_8   = $40
+    58                          VERA_INCR_16  = $50
+    59                          VERA_INCR_32  = $60
+    60                          VERA_INCR_64  = $70
+    61                          VERA_INCR_128 = $80
+    62                          VERA_INCR_256 = $90
+    63                          VERA_INCR_512 = $A0
+    64                          VERA_INCR_40  = $B0
+    65                          VERA_INCR_80  = $C0
+    66                          VERA_INCR_160 = $D0
+    67                          VERA_INCR_320 = $E0
+    68                          VERA_INCR_640 = $F0
+    69                          
+    70                          VERA_DECR     = $08
+    71                          
+    72                          
+    73                          ; Interrupts
+    74                          ; -----------------------------------------------------------------------------
+    75                          VERA_IEN_VSYNC  = $01
+    76                          VERA_IEN_LINE   = $02
+    77                          VERA_IEN_SPRCOL = $04
+    78                          VERA_IEN_AFLOW  = $08
+    79                          
+    80                          
+    81                          ; DC_VIDEO
+    82                          ; -----------------------------------------------------------------------------
+    83                          VERA_VIDEO_SPRITES_ENABLED  = $40
+    84                          VERA_VIDEO_LAYER1_ENABLED   = $20
+    85                          VERA_VIDEO_LAYER0_ENABLED   = $10
+    86                          VERA_VIDEO_OUTPUT_DISABLED  = $00
+    87                          VERA_VIDEO_OUTPUT_VGA       = $01
+    88                          VERA_VIDEO_OUTPUT_NTSC      = $02
+    89                          VERA_VIDEO_OUTPUT_RGB       = $03
+    90                          
+    91                          ; DC_SCALE
+    92                          ; -----------------------------------------------------------------------------
+    93                          VERA_SCALE_1x               = $80
+    94                          VERA_SCALE_2x               = $40
+    95                          VERA_SCALE_4x               = $20
+    96                          
+    97                          ; Lx_CONFIG
+    98                          ; -----------------------------------------------------------------------------
+    99                          VERA_CONFIG_1BPP          = $0
+   100                          VERA_CONFIG_2BPP          = $1
+   101                          VERA_CONFIG_4BPP          = $2
+   102                          VERA_CONFIG_8BPP          = $3
+   103                          
+   104                          VERA_CONFIG_BITMAP_MODE   = $4
+   105                          
+   106                          VERA_CONFIG_MAP_WIDTH_32  = ($0 << 4)
+   107                          VERA_CONFIG_MAP_WIDTH_64  = ($1 << 4)
+   108                          VERA_CONFIG_MAP_WIDTH_128 = ($2 << 4)
+   109                          VERA_CONFIG_MAP_WIDTH_256 = ($3 << 4)
+   110                          
+   111                          VERA_CONFIG_MAP_HEIGHT_32  = ($0 << 6)
+   112                          VERA_CONFIG_MAP_HEIGHT_64  = ($1 << 6)
+   113                          VERA_CONFIG_MAP_HEIGHT_128 = ($2 << 6)
+   114                          VERA_CONFIG_MAP_HEIGHT_256 = ($3 << 6)
+   115                          
+   116                          ; Lx_TILEBASE
+   117                          ; -----------------------------------------------------------------------------
+   118                          VERA_TILE_WIDTH_8   = $00
+   119                          VERA_TILE_WIDTH_16  = $01
+   120                          VERA_TILE_HEIGHT_8  = $00
+   121                          VERA_TILE_HEIGHT_16 = $02
+   122                          
+   123                          ; Other Vera addresses
+   124                          ; -----------------------------------------------------------------------------
+   125                          VERA_PALETTE = $1FA00
+   126                          VERA_SPRITES = $1FC00
+   127                          
+   128                          ; Sprites
+   129                          ; -----------------------------------------------------------------------------
+   130                          VERA_SPRITE_DISABLED  = $00 << 2
+   131                          VERA_SPRITE_BELOW_L0  = $01 << 2
+   132                          VERA_SPRITE_BELOW_L1  = $02 << 2
+   133                          VERA_SPRITE_ABOVE_L1  = $03 << 2
+   134                          VERA_SPRITE_HFLIP     = $01
+   135                          VERA_SPRITE_VFLIP     = $02
+   136                          VERA_SPRITE_WIDTH_8   = $00 << 4
+   137                          VERA_SPRITE_WIDTH_16  = $01 << 4
+   138                          VERA_SPRITE_WIDTH_32  = $02 << 4
+   139                          VERA_SPRITE_WIDTH_64  = $03 << 4
+   140                          VERA_SPRITE_HEIGHT_8  = $00 << 6
+   141                          VERA_SPRITE_HEIGHT_16 = $01 << 6
+   142                          VERA_SPRITE_HEIGHT_32 = $02 << 6
+   143                          VERA_SPRITE_HEIGHT_64 = $03 << 6
+
+; ******** Source: src\snake.asm
+    56                          
+
+; ******** Source: src\common\vera\macros.asm
+     1                          ; Commander X16
+     2                          ;
+     3                          ; Vera macros
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          
+    12                          
+    13                          CMN_VERA_MACROS_ = 1
+    14                          
+    15                          ; -----------------------------------------------------------------------------
+    16                          ; vset: set the address and incrment
+    17                          ; -----------------------------------------------------------------------------
+    18                          !macro vset .addr, increment {
+    19                          	lda #<(.addr >> 16) | increment
+    20                          	sta VERA_ADDRx_H
+    21                          	lda #<(.addr >> 8)
+    22                          	sta VERA_ADDRx_M
+    23                          	lda #<(.addr)
+    24                          	sta VERA_ADDRx_L
+    25                          }
+    26                          
+    27                          !macro vset .addr {
+    28                            +vset .addr, VERA_INCR_1
+    29                          }
+    30                          
+    31                          ; -----------------------------------------------------------------------------
+    32                          ; vpush: push vera address from stack
+    33                          ; -----------------------------------------------------------------------------
+    34                          !macro vpush {
+    35                            lda VERA_ADDRx_H
+    36                            pha
+    37                            lda VERA_ADDRx_M
+    38                            pha
+    39                            lda VERA_ADDRx_L
+    40                            pha
+    41                            lda VERA_CTRL
+    42                            pha
+    43                          }
+    44                          
+    45                          ; -----------------------------------------------------------------------------
+    46                          ; vpop: pop vera address from stack
+    47                          ; -----------------------------------------------------------------------------
+    48                          !macro vpop {
+    49                            pla
+    50                            sta VERA_CTRL
+    51                            pla
+    52                            sta VERA_ADDRx_L
+    53                            pla
+    54                            sta VERA_ADDRx_M
+    55                            pla
+    56                            sta VERA_ADDRx_H
+    57                          }
+    58                          
+    59                          
+    60                          ; -----------------------------------------------------------------------------
+    61                          ; vchannel: set the current vera channel
+    62                          ; -----------------------------------------------------------------------------
+    63                          !macro vchannel .channel {
+    64                            +vreg VERA_CTRL, .channel 
+    65                          }
+    66                          
+    67                          !macro vchannel0 {
+    68                            +vchannel $00 
+    69                          }
+    70                          
+    71                          !macro vchannel1 {
+    72                            +vchannel $01 
+    73                          }
+    74                          
+    75                          
+    76                          ; -----------------------------------------------------------------------------
+    77                          ; vReadByte: read a byte from vram
+    78                          ; -----------------------------------------------------------------------------
+    79                          !macro vReadByte0 .addr {
+    80                          	+vset .addr
+    81                          	lda VERA_DATA0
+    82                          }
+    83                          
+    84                          !macro vReadByte1 .addr {
+    85                          	+vset .addr
+    86                          	lda VERA_DATA1
+    87                          }
+    88                          
+    89                          ; -----------------------------------------------------------------------------
+    90                          ; vreg16: write an 8-bit value to vram
+    91                          ; -----------------------------------------------------------------------------
+    92                          !macro vreg register, value {
+    93                            lda #value
+    94                            sta register
+    95                          }
+    96                          
+    97                          !macro vWriteByte0 value {
+    98                            +vreg VERA_DATA0, value
+    99                          }
+   100                          
+   101                          !macro vWriteByte1 value {
+   102                            +vreg VERA_DATA1, value
+   103                          }
+   104                          
+   105                          ; -----------------------------------------------------------------------------
+   106                          ; vreg16: write a 16-bit value to vram
+   107                          ; -----------------------------------------------------------------------------
+   108                          !macro vreg16 register, value {
+   109                            lda #<value
+   110                            sta register
+   111                            lda #>value
+   112                            sta register
+   113                          }
+   114                          
+   115                          !macro vWriteWord0 value {
+   116                            +vreg16 VERA_DATA0, value
+   117                          }
+   118                          
+   119                          !macro vWriteWord1 value {
+   120                            +vreg16 VERA_DATA1, value
+   121                          }
+   122                          
+   123                          ; -----------------------------------------------------------------------------
+   124                          ; vClear: clear a range of vram (set to zeros)
+   125                          ; -----------------------------------------------------------------------------
+   126                          ; start:  start address
+   127                          ; length: length in bytes to clear
+   128                          ; -----------------------------------------------------------------------------
+   129                          !macro vClear start, length {
+   130                            +vset start
+   131                          
+   132                            ldx #<length
+   133                            ldy #>length
+   134                            lda #0
+   135                          
+   136                          -
+   137                            sta VERA_DATA0
+   138                            dex
+   139                            bne -
+   140                            dey
+   141                            bne -
+   142                          }
+   143                          
+   144                          ; -----------------------------------------------------------------------------
+   145                          ; vLoadRaw:   helper to load a file into vram
+   146                          ; -----------------------------------------------------------------------------
+   147                          ; filename:   zero-terminated string
+   148                          ; vramArress: address to load the raw data
+   149                          ; -----------------------------------------------------------------------------
+   150                          !macro vLoadRaw filename, vramAddress {
+   151                            +vset vramAddress
+   152                          
+   153                            ldx #<filename
+   154                            ldy #>filename
+   155                            jsr strLen
+   156                          
+   157                            jsr loadRaw
+   158                          }
+   159                          
+   160                          ; -----------------------------------------------------------------------------
+   161                          ; vLoadRaw:   helper to load an audio file into vram
+   162                          ; -----------------------------------------------------------------------------
+   163                          ; filename:   zero-terminated string
+   164                          ; vramArress: address to load the raw data
+   165                          ; -----------------------------------------------------------------------------
+   166                          !macro vLoadAudio filename {
+   167                          
+   168                            ldx #<filename
+   169                            ldy #>filename
+   170                            jsr strLen
+   171                          
+   172                            jsr loadRawPCM
+   173                          }
+   174                          
+   175                          
+   176                          ; -----------------------------------------------------------------------------
+   177                          ; filename:   zero-terminated string
+   178                          ; vramArress: address to load the pixel data
+   179                          ; palIndex:  0-15 - high nibble of palette address offset
+   180                          ; -----------------------------------------------------------------------------
+   181                          !macro vLoadPcx filename, vramAddress, palIndex {
+   182                          
+   183                            !if palIndex > 15 {
+   184                              !error "Invalid palette index: ", palIndex, ". Must be between 0 and 15"
+   185                            }
+   186                            
+   187                            +vchannel1
+   188                            
+   189                            +vset VERA_PALETTE + (palIndex << 5)
+   190                            +vchannel0
+   191                            +vset vramAddress
+   192                          
+   193                            ldx #<filename
+   194                            ldy #>filename
+   195                            jsr strLen
+   196                            
+   197                            jsr loadPcxFile
+   198                          }
+   199                          ; -----------------------------------------------------------------------------
+
+; ******** Source: src\snake.asm
+    57                          
+
+; ******** Source: src\common\vera\vera.asm
+     1                          ; Commander X16
+     2                          ;
+     3                          ; VERA helper subroutines
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          ;
+    12                          
+    13                          
+    14                          CMN_VERA_ASM_ = 1
+    15                          
+    16                          
+    17                          !zone vera {
+    18                          
+    19                          ; -----------------------------------------------------------------------------
+    20                          ; loadRaw: load raw data file into VRAM
+    21                          ; -----------------------------------------------------------------------------
+    22                          ; xy contains address of filename
+    23                          ; vera already configured:
+    24                          ;   channel 0 for data
+    25                          ; -----------------------------------------------------------------------------
+    26                          loadRaw:
+    27                          TMP_ADDR = $A000
+    28  0939 20bdff               jsr SETNAM
+    29                          
+    30  093c a901                 lda #$01
+    31  093e a208                 ldx #$08      ; default to device 8
+    32  0940 a001                 ldy #$01      ; $00 means: load to new address
+    33  0942 20baff               jsr SETLFS
+    34                          
+    35  0945 a202                 ldx #<(TMP_ADDR + 2)
+    36  0947 a0a0                 ldy #>(TMP_ADDR + 2)
+    37  0949 a900                 lda #$00      ; $00 means: load to memory (not verify)
+    38  094b 20d5ff               jsr LOAD
+    39  094e b026                 bcs .errorRaw    ; if carry set, a load error has happened
+    40                          
+    41  0950 8606                 stx R2L
+    42  0952 8407                 sty R2H
+    43                          
+    44  0954 a900                 lda #<TMP_ADDR
+    45  0956 8504                 sta R1L
+    46  0958 a9a0                 lda #>TMP_ADDR
+    47  095a 8505                 sta R1H
+    48                          
+    49  095c a000                 ldy #0
+    50                          
+    51                          .checkNextByteRaw:
+    52  095e a505                 lda R1H
+    53  0960 c507                 cmp R2H
+    54  0962 d005                 bne +
+    55  0964 98                   tya
+    56  0965 c506                 cmp R2L
+    57  0967 f00c                 beq .doneRaw
+    58                          +
+    59  0969 b104                 lda (R1),y
+    60  096b 8d239f               sta VERA_DATA0
+    61  096e c8                   iny
+    62  096f d002                 bne +
+    63  0971 e605                 inc R1H
+    64                          +
+    65  0973 80e9                 bra .checkNextByteRaw
+    66                          .doneRaw
+    67                          
+    68  0975 60                   rts
+    69                          .errorRaw
+    70                          
+    71  0976 60                   rts
+    72                          
+    73                          ; -----------------------------------------------------------------------------
+    74                          ; loadRawPCM: load raw data file into VRAM
+    75                          ; -----------------------------------------------------------------------------
+    76                          ; xy contains address of filename
+    77                          ; vera already configured:
+    78                          ;   channel 0 for data
+    79                          ; -----------------------------------------------------------------------------
+    80                          loadRawPCM:
+    81                          TMP_ADDR = $A000
+    82  0977 20bdff               jsr SETNAM
+    83                          
+    84  097a a901                 lda #$01
+    85  097c a208                 ldx #$08      ; default to device 8
+    86  097e a001                 ldy #$01      ; $00 means: load to new address
+    87  0980 20baff               jsr SETLFS
+    88                          
+    89  0983 a202                 ldx #<(TMP_ADDR + 2)
+    90  0985 a0a0                 ldy #>(TMP_ADDR + 2)
+    91  0987 a900                 lda #$00      ; $00 means: load to memory (not verify)
+    92  0989 20d5ff               jsr LOAD
+    93  098c b026                 bcs .errorPcm    ; if carry set, a load error has happened
+    94                          
+    95  098e 8606                 stx R2L
+    96  0990 8407                 sty R2H
+    97                          
+    98  0992 a900                 lda #<TMP_ADDR
+    99  0994 8504                 sta R1L
+   100  0996 a9a0                 lda #>TMP_ADDR
+   101  0998 8505                 sta R1H
+   102                          
+   103  099a a000                 ldy #0
+   104                          
+   105                          .checkNextByte:
+   106  099c a505                 lda R1H
+   107  099e c507                 cmp R2H
+   108  09a0 d005                 bne +
+   109  09a2 98                   tya
+   110  09a3 c506                 cmp R2L
+   111  09a5 f00c                 beq .donePcm
+   112                          +
+   113  09a7 b104                 lda (R1),y
+   114  09a9 8d3d9f               sta $9F3D
+   115  09ac c8                   iny
+   116  09ad d002                 bne +
+   117  09af e605                 inc R1H
+   118                          +
+   119  09b1 80e9                 bra .checkNextByte
+   120                          .donePcm
+   121                          
+   122  09b3 60                   rts
+   123                          .errorPcm
+   124                          
+   125  09b4 60                   rts
+   126                          
+
+; ******** Source: src\snake.asm
+    58                          
+
+; ******** Source: src\common\vera\pcx.asm
+     1                          ; Commander X16
+     2                          ;
+     3                          ; PCX file loader for Vera
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          
+    12                          
+    13                          CMN_VERA_PCX_ = 1
+    14                          
+    15                          !zone pcxFile {
+    16                          
+    17                          ; -----------------------------------------------------------------------------
+    18                          ; pcx constants
+    19                          ; -----------------------------------------------------------------------------
+    20                          
+    21                          PCX_NUM_COLORS      = 16
+    22                          PCX_PALETTE_OFFSET  = $10
+    23                          PCX_PIXELS_OFFSET   = $80
+    24                          PCX_REPEAT_FLAG     = $c0
+    25                          PCX_REPEAT_CNT_MASK = $3f
+    26                          
+    27                          ; -----------------------------------------------------------------------------
+    28                          ; loadPcxFile: load and decode a PCX file into VRAM
+    29                          ; -----------------------------------------------------------------------------
+    30                          ; xy contains address of filename
+    31                          ; vera already configured:
+    32                          ;   channel 0 for pixel data
+    33                          ;   channel 1 for palette
+    34                          ; -----------------------------------------------------------------------------
+    35                          loadPcxFile:
+    36                          TMP_ADDR = $A000
+    37  09b5 20bdff               jsr SETNAM
+    38                          
+    39  09b8 a901                 lda #$01
+    40  09ba a6ba                 ldx $BA       ; last used device number
+    41  09bc d002                 bne +
+    42  09be a208                 ldx #$08      ; default to device 8
+    43  09c0 a000               + ldy #$00      ; $00 means: load to new address
+    44  09c2 20baff               jsr SETLFS
+    45                          
+    46  09c5 a202                 ldx #<(TMP_ADDR + 2)
+    47  09c7 a0a0                 ldy #>(TMP_ADDR + 2)
+    48  09c9 a900                 lda #$00      ; $00 means: load to memory (not verify)
+    49  09cb 20d5ff               jsr LOAD
+    50  09ce 9002                 bcc .loadedOk ; if carry set, a load error has happened
+    51                          
+    52  09d0 00                   brk
+    53                            ; load error?
+    54  09d1 60                   rts
+    55                          
+    56                          ; if we get this far, the file has loaded to TMP_ADDR
+    57                          ; and x/y contains the address of the last byte read
+    58                          .loadedOk:
+    59                          
+    60                            ; store pointer to the last byte
+    61  09d2 8606                 stx R2L
+    62  09d4 8407                 sty R2H
+    63                          
+    64  09d6 a010                 ldy #PCX_PALETTE_OFFSET
+    65  09d8 a210                 ldx #PCX_NUM_COLORS
+    66                          
+    67                          .nextColor:
+    68  09da b900a0               lda TMP_ADDR, Y   ; load red, reduce to 4 bits and store in R0L
+    69  09dd 4a                   lsr
+    70  09de 4a                   lsr
+    71  09df 4a                   lsr
+    72  09e0 4a                   lsr
+    73  09e1 8502                 sta R0L
+    74  09e3 c8                   iny
+    75  09e4 b900a0               lda TMP_ADDR, Y   ; load green, use high 4 bits and store in R0H
+    76  09e7 29f0                 and #$f0
+    77  09e9 8503                 sta R0H
+    78  09eb c8                   iny
+    79  09ec b900a0               lda TMP_ADDR, Y    ; load blue, reduce to 4 bits and combine with green
+    80  09ef 4a                   lsr
+    81  09f0 4a                   lsr
+    82  09f1 4a                   lsr
+    83  09f2 4a                   lsr
+    84  09f3 0503                 ora R0H
+    85  09f5 8d249f               sta VERA_DATA1   ; store GB byte in vram
+    86  09f8 a502                 lda R0L
+    87  09fa 8d249f               sta VERA_DATA1   ; store 0R byte in vram
+    88  09fd c8                   iny
+    89  09fe ca                   dex
+    90  09ff d0d9                 bne .nextColor
+    91                            
+    92  0a01 a900                 lda #<TMP_ADDR
+    93  0a03 8504                 sta R1L
+    94  0a05 a9a0                 lda #>TMP_ADDR
+    95  0a07 8505                 sta R1H
+    96  0a09 a080                 ldy #PCX_PIXELS_OFFSET
+    97                            
+    98                          .checkNextPixel:
+    99  0a0b a505                 lda R1H
+   100  0a0d c507                 cmp R2H
+   101  0a0f d005                 bne +
+   102  0a11 98                   tya
+   103  0a12 c506                 cmp R2L
+   104  0a14 f01f                 beq .done
+   105                          
+   106  0a16 a201               + ldx #1
+   107  0a18 b104                 lda (R1),Y
+   108  0a1a c9c0                 cmp #PCX_REPEAT_FLAG
+   109  0a1c 900a                 bcc .noSequence  ; if is >= c0 (high 2 bits are set), then we're a sequence
+   110                          
+   111                            ; is a sequence, so get the value and count
+   112  0a1e 293f                 and #PCX_REPEAT_CNT_MASK
+   113  0a20 aa                   tax         ; store count in X
+   114  0a21 c8                   iny
+   115  0a22 d002                 bne +
+   116  0a24 e605                 inc R1H
+   117                          +
+   118  0a26 b104                 lda (R1),Y
+   119                           
+   120                            ; not a sequence
+   121                          .noSequence:
+   122  0a28 8d239f               sta VERA_DATA0
+   123  0a2b ca                   dex
+   124  0a2c d0fa                 bne .noSequence
+   125  0a2e c8                   iny
+   126  0a2f d0da                 bne .checkNextPixel
+   127  0a31 e605                 inc R1H
+   128  0a33 80d6                 bra .checkNextPixel
+   129                          
+   130                          .done
+   131                          
+   132  0a35 a901                 lda #$01
+   133  0a37 20c3ff               jsr CLOSE
+   134                          
+   135  0a3a 60                   rts
+   136                          ; -----------------------------------------------------------------------------
+   137                          
+
+; ******** Source: src\snake.asm
+    59                          
+
+; ******** Source: src\common\vera\text.asm
+     1                          ; Commander X16
+     2                          ;
+     3                          ; Raster text subroutines
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          ;
+    12                          
+    13                          CMN_VERA_TEXT_ASM_ = 1
+    14                          
+    15                          ; -----------------------------------------------------------------------------
+    16                          ; outputText: output a raster string to a vera bitmap
+    17                          ; -----------------------------------------------------------------------------
+    18                          ; vera:
+    19                          ;   addr0 set to output location
+    20                          ;   addr1 set to font location
+    21                          ; inputs:
+    22                          ;   X: string address LSB
+    23                          ;   Y: string address MSB
+    24                          ; -----------------------------------------------------------------------------
+    25                          outputText:
+    26  0a3b 8e5b0a               stx .getChar + 1
+    27  0a3e 8c5c0a               sty .getChar + 2
+    28                          
+    29  0a41 a9008d259f           +vchannel0
+    30  0a46 ad209f               lda VERA_ADDRx_L
+    31  0a49 8502                 sta R0L
+    32  0a4b ad219f               lda VERA_ADDRx_M
+    33  0a4e 8503                 sta R0H
+    34                          
+    35  0a50 a9018d259f           +vchannel1
+    36  0a55 ad219f               lda VERA_ADDRx_M
+    37  0a58 8505                 sta R1H
+    38                          
+    39                          .getChar
+    40  0a5a adeeee               lda SELF_MODIFY_ADDR
+    41  0a5d f04c                 beq .done
+    42  0a5f 38                   sec
+    43  0a60 e920                 sbc #32
+    44  0a62 0a                   asl
+    45  0a63 0a                   asl
+    46  0a64 0a                   asl
+    47  0a65 2a                   rol
+    48  0a66 2a                   rol
+    49  0a67 8504                 sta R1L
+    50  0a69 2a                   rol
+    51  0a6a 291f                 and #$1f
+    52  0a6c a8                   tay
+    53  0a6d a9e0                 lda #$e0
+    54  0a6f 2504                 and R1L
+    55  0a71 8d209f               sta VERA_ADDRx_L
+    56  0a74 98                   tya
+    57  0a75 18                   clc
+    58  0a76 6505                 adc R1H
+    59  0a78 8d219f               sta VERA_ADDRx_M
+    60                          
+    61  0a7b a9008d259f           +vchannel0
+    62                          
+    63  0a80 20950b               jsr outputCharacter
+    64                          
+    65  0a83 a9008d259f           +vchannel0
+    66                          
+    67  0a88 a502                 lda R0L
+    68  0a8a 18                   clc
+    69  0a8b 6904                 adc #4
+    70  0a8d 8502                 sta R0L
+    71  0a8f 8d209f               sta VERA_ADDRx_L
+    72  0a92 a503                 lda R0H
+    73  0a94 9001                 bcc +
+    74  0a96 1a                   inc 
+    75                          +
+    76  0a97 8503                 sta R0H
+    77  0a99 8d219f               sta VERA_ADDRx_M
+    78                          
+    79  0a9c ee5b0ad003ee5c0a     +inc16 .getChar + 1
+    80                            
+    81  0aa4 a9018d259f           +vchannel1
+    82  0aa9 80af                 bra .getChar
+    83                          
+    84                          .done:
+    85  0aab a9008d259f           +vchannel0
+    86  0ab0 60                   rts
+    87                          
+    88                          
+    89                          ; -----------------------------------------------------------------------------
+    90                          ; output3BcdDigits: output 3 bcd digits in raster text
+    91                          ; -----------------------------------------------------------------------------
+    92                          ; vera:
+    93                          ;   addr0 set to output location
+    94                          ;   addr1 set to font location
+    95                          ; inputs:
+    96                          ;   x: first bcd digit
+    97                          ;   a: 2x bcd digits
+    98                          ; -----------------------------------------------------------------------------
+    99                          output3BcdDigits:
+   100  0ab1 8502                 sta R0
+   101  0ab3 a9008d259f           +vchannel0
+   102  0ab8 ad229f48ad219f48...  +vpush
+   103  0ac8 8a                   txa
+   104  0ac9 203a0b               jsr outputBcdChar
+   105  0acc 688d259f688d209f...  +vpop
+   106  0adc ad239f               lda VERA_DATA0
+   107  0adf ad239f               lda VERA_DATA0
+   108  0ae2 ad239f               lda VERA_DATA0
+   109  0ae5 ad239f               lda VERA_DATA0
+   110  0ae8 ad229f48ad219f48...  +vpush
+   111  0af8 a502                 lda R0
+   112  0afa 8019                 bra .output2BcdDigitsLateEntry
+   113                          
+   114                          ; WARNING! FLOWS ON THROUGH HERE
+   115                          
+   116                          ; -----------------------------------------------------------------------------
+   117                          ; output2BcdDigits: output 2 bcd digits in raster text
+   118                          ; -----------------------------------------------------------------------------
+   119                          ; vera:
+   120                          ;   addr0 set to output location
+   121                          ;   addr1 set to font location
+   122                          ; inputs:
+   123                          ;   a: 2x bcd digits
+   124                          ; -----------------------------------------------------------------------------
+   125                          output2BcdDigits:
+   126  0afc 8502                 sta R0
+   127  0afe a9008d259f           +vchannel0 ; save output location
+   128  0b03 ad229f48ad219f48...  +vpush
+   129  0b13 a502                 lda R0
+   130                          .output2BcdDigitsLateEntry:
+   131  0b15 4a                   lsr
+   132  0b16 4a                   lsr
+   133  0b17 4a                   lsr
+   134  0b18 4a                   lsr
+   135  0b19 203a0b               jsr outputBcdChar
+   136  0b1c 688d259f688d209f...  +vpop
+   137  0b2c ad239f               lda VERA_DATA0
+   138  0b2f ad239f               lda VERA_DATA0
+   139  0b32 ad239f               lda VERA_DATA0
+   140  0b35 ad239f               lda VERA_DATA0
+   141  0b38 a502                 lda R0
+   142                          
+   143                          
+   144                          ; WARNING! FLOWS ON THROUGH HERE
+   145                          
+   146                          ; -----------------------------------------------------------------------------
+   147                          ; outputBcdChar: output a bcd digit in raster text
+   148                          ; -----------------------------------------------------------------------------
+   149                          ; vera:
+   150                          ;   addr0 set to output location
+   151                          ;   addr1 set to font location
+   152                          ; inputs:
+   153                          ;   a: 1x bcd digit in low nibble
+   154                          ; -----------------------------------------------------------------------------
+   155                          outputBcdChar:
+   156  0b3a 290f                 and #$0f
+   157  0b3c 8504                 sta R1L
+   158  0b3e a9018d259f           +vchannel1
+   159  0b43 ad229f48ad219f48...  +vpush
+   160                            
+   161  0b53 a504                 lda R1L
+   162  0b55 0910                 ora #$10 ; add 16
+   163  0b57 0a                   asl
+   164  0b58 0a                   asl
+   165  0b59 0a                   asl
+   166  0b5a 0a                   asl
+   167  0b5b 2a                   rol
+   168  0b5c 8504                 sta R1L
+   169  0b5e 2a                   rol
+   170  0b5f 291f                 and #$1f
+   171  0b61 a8                   tay
+   172  0b62 a9e0                 lda #$e0
+   173  0b64 2504                 and R1L
+   174  0b66 8d209f               sta VERA_ADDRx_L
+   175  0b69 98                   tya
+   176  0b6a 18                   clc
+   177  0b6b 6505                 adc R1H
+   178  0b6d 8d219f               sta VERA_ADDRx_M
+   179                          
+   180  0b70 a9008d259f           +vchannel0
+   181                          
+   182  0b75 20950b               jsr outputCharacter
+   183                          
+   184  0b78 688d259f688d209f...  +vpop
+   185                          
+   186  0b88 60                   rts
+   187                          
+   188                          ; -----------------------------------------------------------------------------
+   189                          ; setPixelOperationNone: updates instruction in outputCharacter to nop
+   190                          ; -----------------------------------------------------------------------------
+   191                          setPixelOperationNone:
+   192  0b89 a9ea                 lda #$ea ; nop
+   193  0b8b 8d9f0b               sta textPixelOperation
+   194  0b8e 60                   rts
+   195                          
+   196                          ; -----------------------------------------------------------------------------
+   197                          ; setPixelOperationNone: updates instruction in outputCharacter to lsr
+   198                          ; -----------------------------------------------------------------------------
+   199                          setPixelOperationLSR:
+   200  0b8f a90a                 lda #$0a ; lsr
+   201  0b91 8d9f0b               sta textPixelOperation
+   202  0b94 60                   rts
+   203                          
+   204                          
+   205                          ; -----------------------------------------------------------------------------
+   206                          ; outputCharacter: output a raster character
+   207                          ; -----------------------------------------------------------------------------
+   208                          ; vera:
+   209                          ;   addr0 set to output location
+   210                          ;   addr1 set to character tile location
+   211                          ; -----------------------------------------------------------------------------
+   212                          outputCharacter:
+   213  0b95 5a                   phy
+   214  0b96 da                   phx
+   215  0b97 48                   pha
+   216                          
+   217  0b98 a008                 ldy #8
+   218                            
+   219                          .nextRow: 
+   220  0b9a a204                 ldx #4 ; 4 bytes per row
+   221                          
+   222                          .nextCol:
+   223  0b9c ad249f               lda VERA_DATA1
+   224                          textPixelOperation:
+   225  0b9f ea                   nop  ; operation which can be substituted
+   226  0ba0 8d239f               sta VERA_DATA0
+   227                          
+   228  0ba3 ca                   dex
+   229  0ba4 d0f6                 bne .nextCol
+   230                          
+   231  0ba6 18                   clc
+   232  0ba7 ad209f               lda VERA_ADDRx_L
+   233  0baa 699c                 adc #160 - 4 ; bytes per row, less our current offset
+   234  0bac 8d209f               sta VERA_ADDRx_L
+   235  0baf 9003                 bcc +
+   236  0bb1 ee219f               inc VERA_ADDRx_M
+   237                          +
+   238  0bb4 88                   dey
+   239  0bb5 d0e3                 bne .nextRow
+   240                          
+   241  0bb7 68                   pla
+   242  0bb8 fa                   plx
+   243  0bb9 7a                   ply
+   244                          
+
+; ******** Source: src\snake.asm
+    60  0bba 60                 
+
+; ******** Source: src\common\vera\vsync.asm
+     1                          ; Commander X16
+     2                          ;
+     3                          ; VERA Vsync helpers
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          ;
+    12                          
+    13                          
+    14                          CMN_VERA_VSYNC_ASM_ = 1
+    15                          
+    16                          defaultIrqHandler:
+    17  0bbb 0000               !word $0000
+    18                          
+    19                          VSYNC_FLAG = $30
+    20                          
+    21                          registerVsyncIrq:
+    22  0bbd ad1403                 lda $0314
+    23  0bc0 8dbb0b                 sta defaultIrqHandler
+    24  0bc3 ad1503                 lda $0315
+    25  0bc6 8dbc0b                 sta defaultIrqHandler + 1
+    26                          
+    27  0bc9 a9d4                   lda #<vSyncIrqhandler
+    28  0bcb 8d1403                 sta $0314
+    29  0bce a90b                   lda #>vSyncIrqhandler + 1
+    30  0bd0 8d1503                 sta $0315
+    31  0bd3 60                     rts
+    32                          
+    33                          vSyncIrqhandler:
+    34  0bd4 ad279f                 lda VERA_ISR
+    35  0bd7 2901                   and #VERA_IEN_VSYNC
+    36  0bd9 f002                   beq .irqDone
+    37                          
+    38                              ; Whatever code your program
+    39                              ; wanted to execute...
+    40  0bdb 6430                   stz VSYNC_FLAG
+    41                          
+    42                              ; Return to whatever had been interrupted:
+    43                          .irqDone:
+    44  0bdd 6cbb0b                 jmp (defaultIrqHandler)
+
+; ******** Source: src\snake.asm
+    61                          
+    62                          
+    63                          
+
+; ******** Source: src\rambank.asm
+     1                          ; Snake - Commander X16
+     2                          ;
+     3                          ; RAM banks
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          
+    12                          ; Central place to keep track of RAM banks used
+    13                          
+    14                          RAM_BANK_SCRATCH        = 0
+
+; ******** Source: src\snake.asm
+    64                          
+
+; ******** Source: src\vram.asm
+     1                          ; Snake - Commander X16
+     2                          ;
+     3                          ; VRAM addresses
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/cx16-snake
+    10                          ;
+    11                          
+    12                          
+    13                          ; VERA memory map:
+    14                          ; -----------------------------------------------------------------------------
+    15                          ;  $0000      (0) -  $09FF   (4095) - (4,096 bytes) UNUSED
+    16                          ;  $1A00   (4096) -  $19FF   (8191) - (64 x 32 x 2 = 4,096 bytes) map
+    17                          ;  $2000   (8192) -  $3FFF  (16383) - (8,192 bytes) UNUSED
+    18                          ;  $4000  (16384) -  $BFFF  (49151) - (16 x 16 x 128 = 32,768 bytes) L0 tiles
+    19                          ;  $C000  (49152) - $155FF  (87551) - (320 x 240 / 2 = 38,400 bytes) L1 overlay
+    20                          ; $15600  (87552) - $1F9BF (129471) - (41,920 bytes) UNUSED
+    21                          ;
+    22                          ; $1F9C0 - $1F9FF	PSG registers
+    23                          ; $1FA00 - $1FBFF	Palette
+    24                          ; $1FC00 - $1FFFF	Sprite attributes
+    25                          ;
+    26                          
+    27                          
+    28                          ; -----------------------------------------------------------------------------
+    29                          ; VRAM addresses
+    30                          ; -----------------------------------------------------------------------------
+    31                          VRADDR_MAP_BASE       = $1000
+    32                          VRADDR_TILE_BASE      = $4000
+    33                          VRADDR_OVERLAY        = $C000
+
+; ******** Source: src\snake.asm
+    65                          
+
+; ******** Source: src\zeropage.asm
+     1                          ; Snake - Commander X16
+     2                          ;
+     3                          ; Zero page addresses
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          ;
+    12                          
+    13                          
+    14                          ; Available locations
+    15                          ; https://github.com/commanderx16/x16-docs/blob/master/Commander%20X16%20Programmer%27s%20Reference%20Guide.md#ram-contents
+    16                          ;
+    17                          ;   $00 - $7F (128 bytes) user zero page   
+    18                          ;   $A9 - $FF (87 bytes)  if BASIC or FLOAT functions not used
+    19                          ; 
+    20                          ; Not available:
+    21                          ;   $80 - $A8 (41 bytes)
+    22                          
+    23                          ; -----------------------------------------------------------------------------
+    24                          
+    25                          ; $00 - $01 ??
+    26                          ; $02 - $21 Virtual registers (R0 -> R15)
+    27                          
+    28                          ; -----------------------------------------------------------------------------
+    29                          
+    30                          ;
+    31                          ; $22 - $2f unused
+    32                          ;
+    33                          
+    34                          ZP_CURRENT_CELL_X        = $30
+    35                          ZP_CURRENT_CELL_Y        = $31
+    36                          
+    37                          ZP_CURRENT_PALETTE       = $32
+    38                          
+    39                          ;
+    40                          ; $33 - $7f unused
+    41                          ;
+    42                          
+    43                          ; -----------------------------------------------------------------------------
+    44                          ; \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
+    45                          ;  \ \ \ \ \ \ \ \ \ \ \ \ $80 - $A8: not available  \ \ \ \ \ \ \ \ \ \ \ \ \
+    46                          ; \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
+    47                          ; -----------------------------------------------------------------------------
+    48                          
+    49                          
+    50                          ;
+    51                          ; $a9 - $ff unused
+    52                          ;
+
+; ******** Source: src\snake.asm
+    66                          
+
+; ******** Source: src\gameloop.asm
+     1                          ; Snake - Commander X16
+     2                          ;
+     3                          ; Game loop
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/cx16-snake
+    10                          ;
+    11                          ;
+    12                          
+    13                          
+    14                          SNAKE_GAMELOOP_ASM_ = 1
+    15                          
+    16                          
+    17                          ; -----------------------------------------------------------------------------
+    18                          ; loop to wait for vsync
+    19                          ; -----------------------------------------------------------------------------
+    20                          waitForVsync:
+    21  0be0 cb                   !byte $CB  ; WAI instruction
+    22  0be1 a530                 lda VSYNC_FLAG
+    23  0be3 d0fb                 bne waitForVsync
+    24                          
+    25                            ; flow on through to the.... 
+    26                          
+    27                          ; -----------------------------------------------------------------------------
+    28                          ; main game loop
+    29                          ; -----------------------------------------------------------------------------
+    30                          gameLoop:
+    31                          
+    32  0be5 a901                 lda #1
+    33  0be7 8530                 sta VSYNC_FLAG
+    34                          
+
+; ******** Source: src\snake.asm
+    67  0be9 80f5               
+
+; ******** Source: src\display.asm
+     1                          ; Snake - Commander X16
+     2                          ;
+     3                          ; Display routines
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/cx16-snake
+    10                          ;
+    11                          ;
+    12                          
+    13                          
+    14                          SNAKE_DISPLAY_ASM_ = 1
+    15                          
+    16                          DISPLAY_SIZE_X  = 640
+    17                          DISPLAY_SIZE_Y  = 480
+    18                          
+    19                          DISPLAY_BYTES_PER_ROW = DISPLAY_SIZE_X / 2
+    20                          
+    21                          BOTTOM_PANEL_SIZE_Y  = 24
+    22                          VISIBLE_AREA_X       = DISPLAY_SIZE_X
+    23                          VISIBLE_AREA_Y       = DISPLAY_SIZE_Y - BOTTOM_PANEL_SIZE_Y
+    24                          VISIBLE_AREA_CX      = VISIBLE_AREA_X / 2
+    25                          VISIBLE_AREA_CY      = VISIBLE_AREA_Y / 2
+    26                          
+    27                          ; -----------------------------------------------------------------------------
+    28                          ; disable the display
+    29                          ; -----------------------------------------------------------------------------
+    30                          disableDisplay:
+    31  0beb a9018d299f           +vreg VERA_DC_VIDEO, VERA_VIDEO_OUTPUT_VGA
+    32  0bf0 60                   rts
+    33                          
+    34                          ; -----------------------------------------------------------------------------
+    35                          ; configure the display
+    36                          ; -----------------------------------------------------------------------------
+    37                          configDisplay:
+    38                          
+    39                            ; set up layer 0 to hold our map tiles
+    40  0bf1 a9088d2e9f           +vreg VERA_L0_MAPBASE, VRADDR_MAP_BASE >> 9
+    41  0bf6 a9238d2f9f           +vreg VERA_L0_TILEBASE, (VRADDR_TILE_BASE >> 9) | VERA_TILE_WIDTH_16 | VERA_TILE_HEIGHT_16
+    42  0bfb a9128d2d9f           +vreg VERA_L0_CONFIG, VERA_CONFIG_MAP_WIDTH_64 | VERA_CONFIG_MAP_HEIGHT_32 | VERA_CONFIG_4BPP
+    43                            ;+vreg VERA_L0_HSCROLL_H, 1
+    44                          
+    45                            ; layer 1 to hold our hud/ui
+    46                            ;+vreg VERA_L1_TILEBASE, (VRADDR_OVERLAY >> 9)
+    47                            ;+vreg VERA_L1_CONFIG, VERA_CONFIG_BITMAP_MODE | VERA_CONFIG_4BPP
+    48                            ;+vreg VERA_L1_HSCROLL_H, OVERLAY_PAL
+    49                          
+    50                            ; other display settings
+    51                          ;  +vreg VERA_DC_VIDEO, VERA_VIDEO_LAYER0_ENABLED | VERA_VIDEO_LAYER1_ENABLED | VERA_VIDEO_OUTPUT_VGA
+    52  0c00 a9118d299f           +vreg VERA_DC_VIDEO, VERA_VIDEO_LAYER0_ENABLED | VERA_VIDEO_OUTPUT_VGA
+    53  0c05 a9808d2a9f           +vreg VERA_DC_HSCALE, VERA_SCALE_1x
+    54  0c0a a9808d2b9f           +vreg VERA_DC_VSCALE, VERA_SCALE_1x
+    55  0c0f a9018d269f           +vreg VERA_IEN, VERA_IEN_VSYNC
+    56  0c14 a9018d279f           +vreg VERA_ISR, VERA_IEN_VSYNC
+    57                            
+    58  0c19 60                   rts
+    59                            
+    60                            ; -----------------------------------------------------------------------------
+
+; ******** Source: src\snake.asm
+    68                          
+
+; ******** Source: src\tiles.asm
+     1                          ; Snake - Commander X16
+     2                          ;
+     3                          ; Tile definitions
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/supaplex-x16
+    10                          ;
+    11                          ;
+    12                          
+    13                          
+    14                          TILE_SIZE         = 16
+    15                          HALF_TILE_SIZE    = TILE_SIZE / 2
+    16                          TILE_SIZE_BYTES   = 16 * 16 / 2  ; 16 x 16 x 4bpp
+    17                          
+    18  0c1a 736e616b652e7063...snakePcx:   !text "snake.pcx",0
+    19                          
+    20                          ; -----------------------------------------------------------------------------
+    21                          ; tileset addresses
+    22                          ; -----------------------------------------------------------------------------
+    23                          SNAKE_ADDR = VRADDR_TILE_BASE
+    24                          
+    25                          ; -----------------------------------------------------------------------------
+    26                          ; palette indexes
+    27                          ; -----------------------------------------------------------------------------
+    28                          SNAKE_PAL_ODD    = 2
+    29                          SNAKE_PAL_EVEN   = 3
+    30                          
+    31                          SNAKE_PAL = SNAKE_PAL_ODD
+    32                          
+    33                          ; -----------------------------------------------------------------------------
+    34                          ; tile flags
+    35                          ; -----------------------------------------------------------------------------
+    36                          TILE_FLIP_H = $04
+    37                          TILE_FLIP_V = $08
+    38                          
+    39                          
+    40                          !macro ldaTileId tileAddress { lda #(tileAddress - tileTable) >> 1 }
+    41                          !macro cmpTileId tileAddress { cmp #(tileAddress - tileTable) >> 1 }
+    42                          !macro byteTileId tileAddress { !byte (tileAddress - tileTable) >> 1 }
+    43                          
+    44                          ; -----------------------------------------------------------------------------
+    45                          ; load the tiles from disk into vram
+    46                          ; -----------------------------------------------------------------------------
+    47                          loadTiles:
+    48  0c24 a9008d619f           +setRamBank RAM_BANK_SCRATCH
+    49  0c29 a9018d259fa9118d...  +vLoadPcx snakePcx,  SNAKE_ADDR, SNAKE_PAL_ODD
+    50  0c5b a9018d259fa9118d...  +vLoadPcx snakePcx,  SNAKE_ADDR, SNAKE_PAL_EVEN
+    51                          
+    52  0c8d a9108d229fa9108d...  +vset VRADDR_MAP_BASE
+    53                          
+    54  0c9c 6430                 stz ZP_CURRENT_CELL_X
+    55  0c9e 6431                 stz ZP_CURRENT_CELL_Y
+    56  0ca0 20e50c               jsr setCellVram
+    57  0ca3 a900                 lda #0
+    58  0ca5 20040d               jsr outputTile
+    59                          
+    60  0ca8 e631                 inc ZP_CURRENT_CELL_Y
+    61  0caa 20e50c               jsr setCellVram
+    62  0cad a901                 lda #1
+    63  0caf 20040d               jsr outputTile
+    64                          
+    65  0cb2 e631                 inc ZP_CURRENT_CELL_Y
+    66  0cb4 20e50c               jsr setCellVram
+    67  0cb7 a902                 lda #2
+    68  0cb9 20040d               jsr outputTile
+    69                          
+    70                          
+    71  0cbc e631                 inc ZP_CURRENT_CELL_Y
+    72  0cbe 20e50c               jsr setCellVram
+    73  0cc1 a903                 lda #3
+    74  0cc3 20040d               jsr outputTile
+    75                          
+    76  0cc6 e630                 inc ZP_CURRENT_CELL_X
+    77  0cc8 20e50c               jsr setCellVram
+    78  0ccb a904                 lda #4
+    79  0ccd 20040d               jsr outputTile
+    80                          
+    81  0cd0 e631                 inc ZP_CURRENT_CELL_Y
+    82  0cd2 20e50c               jsr setCellVram
+    83  0cd5 a905                 lda #5
+    84  0cd7 20040d               jsr outputTile
+    85                          
+    86  0cda e630                 inc ZP_CURRENT_CELL_X
+    87  0cdc 20e50c               jsr setCellVram
+    88  0cdf a906                 lda #6
+    89  0ce1 20040d               jsr outputTile
+    90                          
+    91                          
+    92  0ce4 60                   rts
+    93                          
+    94                          
+    95                          setCellVram:
+    96  0ce5 a530                 lda ZP_CURRENT_CELL_X
+    97  0ce7 0a                   asl
+    98  0ce8 0a                   asl
+    99  0ce9 8d209f             	sta VERA_ADDRx_L
+   100                          
+   101  0cec a910               	lda #<(VRADDR_MAP_BASE >> 8)
+   102  0cee 18                   clc
+   103  0cef 6531                 adc ZP_CURRENT_CELL_Y
+   104  0cf1 8d219f             	sta VERA_ADDRx_M
+   105                          
+   106  0cf4 18                   clc
+   107  0cf5 6432                 stz ZP_CURRENT_PALETTE
+   108  0cf7 a530                 lda ZP_CURRENT_CELL_X
+   109  0cf9 6531                 adc ZP_CURRENT_CELL_Y
+   110  0cfb 8901                 bit #1
+   111  0cfd f004                 beq +
+   112  0cff a910                 lda #16
+   113  0d01 8532                 sta ZP_CURRENT_PALETTE
+   114                          +
+   115                          
+   116  0d03 60                   rts
+   117                          
+   118                          
+   119                          
+   120                          !macro outputTile startOffset {
+   121                          
+   122                          
+   123                            lda startOffset, y
+   124                            sta VERA_DATA0  
+   125                            lda startOffset + 1, y  
+   126                            ora ZP_CURRENT_PALETTE
+   127                            sta VERA_DATA0
+   128                            lda startOffset + 2, y
+   129                            sta VERA_DATA0  
+   130                            lda startOffset + 3, y
+   131                            ora ZP_CURRENT_PALETTE
+   132                            sta VERA_DATA0
+   133                            clc
+   134                            lda VERA_ADDRx_L
+   135                            adc #124
+   136                            sta VERA_ADDRx_L
+   137                            lda startOffset + 4, y
+   138                            sta VERA_DATA0  
+   139                            lda startOffset + 5, y
+   140                            ora ZP_CURRENT_PALETTE
+   141                            sta VERA_DATA0
+   142                            lda startOffset + 6, y
+   143                            sta VERA_DATA0  
+   144                            lda startOffset + 7, y
+   145                            ora ZP_CURRENT_PALETTE
+   146                            sta VERA_DATA0
+   147                          }
+   148                          
+   149                          
+   150                          
+   151                          
+   152                          ; -----------------------------------------------------------------------------
+   153                          ; outputTile
+   154                          ; -----------------------------------------------------------------------------
+   155                          ; Inputs:
+   156                          ;  a: tileId
+   157                          ;
+   158                          ; Prerequisites:
+   159                          ;  VERA address already set
+   160                          ; -----------------------------------------------------------------------------
+   161                          outputTile:
+   162  0d04 0a                   asl ; 2x
+   163  0d05 0a                   asl ; 4x
+   164  0d06 0a                   asl ; 8x
+   165  0d07 a8                   tay
+   166                          
+   167  0d08 9042                 bcc .firstHalf
+   168                          
+   169  0d0a b9000f8d239fb901...  +outputTile tileTable + $100
+   170  0d4b 60                   rts
+   171                          
+   172                          .firstHalf:
+   173  0d4c b9000e8d239fb901...  +outputTile tileTable
+   174  0d8d 60                   rts
+   175                          ; -----------------------------------------------------------------------------
+   176                          
+   177                          
+   178                          ; -----------------------------------------------------------------------------
+   179                          ; tile definitions
+   180                          ; -----------------------------------------------------------------------------
+   181                          ; two bytes per tile in the VERA tile format:
+   182                          ;
+   183                          ; Offset	Bit 7	Bit 6	Bit 5	Bit 4	Bit 3	Bit 2	Bit 1	Bit 0
+   184                          ; 0	        [ Tile index (7:0)                                            ]
+   185                          ; 1	        [ Palette offset              ][V-flip][H-flip][Tile index 9:8]
+   186                          ;
+   187                          ; -----------------------------------------------------------------------------
+   188                          !macro tileDef index, tilesetAddr, tileOffset, tilePalette, tileFlags {
+   189                              
+   190                              .tilesetOffset = (tilesetAddr - VRADDR_TILE_BASE) / TILE_SIZE_BYTES
+   191                          
+   192                              ; tile offset
+   193                              .tileOffset    = .tilesetOffset + tileOffset
+   194                          
+   195                              ; tile index (7:0)
+   196                              !byte .tileOffset & $ff
+   197                          
+   198                              ; palette offset (7:4), flags, tile offset (9:8)
+   199                              !byte (tilePalette << 4) | tileFlags | (.tileOffset >> 8)
+   200                          }
+   201                          
+   202  0d8e eaeaeaeaeaeaeaea...!align 255,0
+   203                          tileTable:
+   204  0e00 0620               tileBlank:        +tileDef   0, SNAKE_ADDR, 6,  SNAKE_PAL, 0
+   205  0e02 0620                                 +tileDef   0, SNAKE_ADDR, 6,  SNAKE_PAL, 0
+   206  0e04 0620                                 +tileDef   0, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
+   207  0e06 0620                                 +tileDef   0, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
+   208  0e08 0020               tileHeadUp:       +tileDef   1, SNAKE_ADDR, 0,  SNAKE_PAL, 0
+   209  0e0a 1020                                 +tileDef   1, SNAKE_ADDR, 16, SNAKE_PAL, 0
+   210  0e0c 0120                                 +tileDef   1, SNAKE_ADDR, 1,  SNAKE_PAL, 0                  
+   211  0e0e 1120                                 +tileDef   1, SNAKE_ADDR, 17, SNAKE_PAL, 0                  
+   212  0e10 1d2c               tileHeadLeft:     +tileDef   2, SNAKE_ADDR, 29, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   213  0e12 0d2c                                 +tileDef   2, SNAKE_ADDR, 13, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   214  0e14 1c2c                                 +tileDef   2, SNAKE_ADDR, 28, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   215  0e16 0c2c                                 +tileDef   2, SNAKE_ADDR, 12, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   216  0e18 112c               tileHeadDown:     +tileDef   3, SNAKE_ADDR, 17, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   217  0e1a 012c                                 +tileDef   3, SNAKE_ADDR, 1,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   218  0e1c 102c                                 +tileDef   3, SNAKE_ADDR, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   219  0e1e 002c                                 +tileDef   3, SNAKE_ADDR, 0,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   220  0e20 0c20               tileHeadRight     +tileDef   4, SNAKE_ADDR, 12, SNAKE_PAL, 0
+   221  0e22 1c20                                 +tileDef   4, SNAKE_ADDR, 28, SNAKE_PAL, 0
+   222  0e24 0d20                                 +tileDef   4, SNAKE_ADDR, 13, SNAKE_PAL, 0
+   223  0e26 1d20                                 +tileDef   4, SNAKE_ADDR, 29, SNAKE_PAL, 0
+   224  0e28 0220               tileBodyUp:       +tileDef   5, SNAKE_ADDR, 2,  SNAKE_PAL, 0
+   225  0e2a 1220                                 +tileDef   5, SNAKE_ADDR, 18, SNAKE_PAL, 0
+   226  0e2c 0220                                 +tileDef   5, SNAKE_ADDR, 2,  SNAKE_PAL, 0                  
+   227  0e2e 1220                                 +tileDef   5, SNAKE_ADDR, 18, SNAKE_PAL, 0                  
+   228  0e30 132c               tileBodyLeft      +tileDef   6, SNAKE_ADDR, 19, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   229  0e32 132c                                 +tileDef   6, SNAKE_ADDR, 19, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   230  0e34 032c                                 +tileDef   6, SNAKE_ADDR, 3,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   231  0e36 032c                                 +tileDef   6, SNAKE_ADDR, 3,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   232  0e38 122c               tileBodyDown:     +tileDef   7, SNAKE_ADDR, 18, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   233  0e3a 022c                                 +tileDef   7, SNAKE_ADDR, 2,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   234  0e3c 122c                                 +tileDef   7, SNAKE_ADDR, 18, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   235  0e3e 022c                                 +tileDef   7, SNAKE_ADDR, 2,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   236  0e40 0320               tileBodyRight     +tileDef   8, SNAKE_ADDR, 3,  SNAKE_PAL, 0
+   237  0e42 0320                                 +tileDef   8, SNAKE_ADDR, 3,  SNAKE_PAL, 0
+   238  0e44 1320                                 +tileDef   8, SNAKE_ADDR, 19, SNAKE_PAL, 0
+   239  0e46 1320                                 +tileDef   8, SNAKE_ADDR, 19, SNAKE_PAL, 0
+   240  0e48 0420               tileTailUp:       +tileDef   9, SNAKE_ADDR, 4,  SNAKE_PAL, 0
+   241  0e4a 1420                                 +tileDef   9, SNAKE_ADDR, 20, SNAKE_PAL, 0
+   242  0e4c 0520                                 +tileDef   9, SNAKE_ADDR, 5,  SNAKE_PAL, 0                  
+   243  0e4e 1520                                 +tileDef   9, SNAKE_ADDR, 21, SNAKE_PAL, 0                  
+   244  0e50 1f2c               tileTailLeft      +tileDef   10, SNAKE_ADDR, 31, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   245  0e52 0f2c                                 +tileDef   10, SNAKE_ADDR, 15, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   246  0e54 1e2c                                 +tileDef   10, SNAKE_ADDR, 30, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   247  0e56 0e2c                                 +tileDef   10, SNAKE_ADDR, 14, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   248  0e58 152c               tileTailDown:     +tileDef   11, SNAKE_ADDR, 21, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   249  0e5a 052c                                 +tileDef   11, SNAKE_ADDR, 5,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   250  0e5c 142c                                 +tileDef   11, SNAKE_ADDR, 20, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   251  0e5e 042c                                 +tileDef   11, SNAKE_ADDR, 4,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   252  0e60 0e20               tileTailRight     +tileDef   12, SNAKE_ADDR, 14, SNAKE_PAL, 0
+   253  0e62 1e20                                 +tileDef   12, SNAKE_ADDR, 30, SNAKE_PAL, 0
+   254  0e64 0f20                                 +tileDef   12, SNAKE_ADDR, 15, SNAKE_PAL, 0
+   255  0e66 1f20                                 +tileDef   12, SNAKE_ADDR, 31, SNAKE_PAL, 0
+   256  0e68 1b2c               tileBodyUpLeft:   +tileDef   13, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   257  0e6a 0b2c                                 +tileDef   13, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   258  0e6c 1a2c                                 +tileDef   13, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   259  0e6e 0a2c                                 +tileDef   13, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   260  0e70 0820               tileBodyLeftDown: +tileDef   14, SNAKE_ADDR, 8,  SNAKE_PAL, 0
+   261  0e72 1820                                 +tileDef   14, SNAKE_ADDR, 24, SNAKE_PAL, 0
+   262  0e74 0920                                 +tileDef   14, SNAKE_ADDR, 9,  SNAKE_PAL, 0
+   263  0e76 1920                                 +tileDef   14, SNAKE_ADDR, 25, SNAKE_PAL, 0
+   264  0e78 0a20               tileBodyDownRight:+tileDef   15, SNAKE_ADDR, 10, SNAKE_PAL, 0
+   265  0e7a 1a20                                 +tileDef   15, SNAKE_ADDR, 26, SNAKE_PAL, 0
+   266  0e7c 0b20                                 +tileDef   15, SNAKE_ADDR, 11, SNAKE_PAL, 0
+   267  0e7e 1b20                                 +tileDef   15, SNAKE_ADDR, 27, SNAKE_PAL, 0
+   268  0e80 192c               tileBodyRightUp:  +tileDef   16, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   269  0e82 092c                                 +tileDef   16, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   270  0e84 182c                                 +tileDef   16, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   271  0e86 082c                                 +tileDef   16, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   272  0e88 0928               tileBodyLeftUp:   +tileDef   17, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_V
+   273  0e8a 1928                                 +tileDef   17, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_V
+   274  0e8c 0828                                 +tileDef   17, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_V
+   275  0e8e 1828                                 +tileDef   17, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_V
+   276  0e90 1a24               tileBodyDownLeft: +tileDef   18, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_H
+   277  0e92 0a24                                 +tileDef   18, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_H
+   278  0e94 1b24                                 +tileDef   18, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_H
+   279  0e96 0b24                                 +tileDef   18, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_H
+   280  0e98 1824               tileBodyRightDown:+tileDef   19, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_H
+   281  0e9a 0824                                 +tileDef   19, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_H
+   282  0e9c 1924                                 +tileDef   19, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_H
+   283  0e9e 0924                                 +tileDef   19, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_H
+   284  0ea0 0b28               tileBodyUpRight:  +tileDef   20, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_V
+   285  0ea2 1b28                                 +tileDef   20, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_V
+   286  0ea4 0a28                                 +tileDef   20, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_V
+   287  0ea6 1a28                                 +tileDef   20, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_V
