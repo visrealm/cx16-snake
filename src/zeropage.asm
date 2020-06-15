@@ -42,6 +42,10 @@ ZP_HEAD_CELL_X           = $34
 ZP_HEAD_CELL_Y           = $35
 
 ZP_ANIM_INDEX            = $36
+ZP_RANDOM                = $37
+
+ZP_APPLE_CELL_X          = $38
+ZP_APPLE_CELL_Y          = $39
 
 ZP_QUEUE_X_INDEX         = $40
 ZP_QUEUE_X               = $41

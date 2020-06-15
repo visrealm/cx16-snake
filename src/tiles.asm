@@ -16,19 +16,24 @@ HALF_TILE_SIZE    = TILE_SIZE / 2
 TILE_SIZE_BYTES   = 16 * 16 / 2  ; 16 x 16 x 4bpp
 
 snakePcx:   !text "snake.pcx",0
+applePcx:   !text "apple.pcx",0
 
 ; -----------------------------------------------------------------------------
 ; tileset addresses
 ; -----------------------------------------------------------------------------
 SNAKE_ADDR = VRADDR_TILE_BASE
+APPLE_ADDR = SNAKE_ADDR + (16 * 256)
 
 ; -----------------------------------------------------------------------------
 ; palette indexes
 ; -----------------------------------------------------------------------------
 SNAKE_PAL_ODD    = 2
 SNAKE_PAL_EVEN   = 3
+APPLE_PAL_ODD    = 4
+APPLE_PAL_EVEN   = 5
 
 SNAKE_PAL = SNAKE_PAL_ODD
+APPLE_PAL = APPLE_PAL_ODD
 
 ; -----------------------------------------------------------------------------
 ; tile flags
@@ -48,8 +53,16 @@ loadTiles:
   +setRamBank RAM_BANK_SCRATCH
   +vLoadPcx snakePcx,  SNAKE_ADDR, SNAKE_PAL_ODD
   +vLoadPcx snakePcx,  SNAKE_ADDR, SNAKE_PAL_EVEN
+  +vLoadPcx applePcx,  APPLE_ADDR, APPLE_PAL_ODD
+  +vLoadPcx applePcx,  APPLE_ADDR, APPLE_PAL_EVEN
   
   +vset VERA_PALETTE + (SNAKE_PAL_EVEN << 5) + 30
+  lda #$d3
+  sta VERA_DATA0
+  lda #$08
+  sta VERA_DATA0
+
+  +vset VERA_PALETTE + (APPLE_PAL_EVEN << 5) + 30
   lda #$d3
   sta VERA_DATA0
   lda #$08
@@ -101,6 +114,11 @@ loadTiles:
   +qPush ZP_QUEUE_D_INDEX
   +qPush ZP_QUEUE_D_INDEX
   +qPush ZP_QUEUE_D_INDEX
+
+  lda #13
+  sta ZP_APPLE_CELL_X
+  lda #4
+  sta ZP_APPLE_CELL_Y
 
 
   lda #DIR_RIGHT
@@ -310,3 +328,7 @@ tileBlank:        +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0
                   +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0
                   +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
                   +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
+tileApple:        +tileDef   21, APPLE_ADDR, 0,  APPLE_PAL, 0
+                  +tileDef   21, APPLE_ADDR, 2,  APPLE_PAL, 0
+                  +tileDef   21, APPLE_ADDR, 1,  APPLE_PAL, 0                  
+                  +tileDef   21, APPLE_ADDR, 3,  APPLE_PAL, 0                  
