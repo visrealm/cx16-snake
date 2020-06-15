@@ -64,6 +64,6 @@ ADDR_QUEUE_HEADERS = $6000 ; 4KB
 !source "src/rambank.asm"
 !source "src/vram.asm"
 !source "src/zeropage.asm"
-!source "src/gameloop.asm"
 !source "src/display.asm"
 !source "src/tiles.asm"
+!source "src/gameloop.asm"

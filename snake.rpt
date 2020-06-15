@@ -197,15 +197,15 @@
     26  0810 78                   sei
     27                          
     28                            ; turn off the display while we're setting things up
-    29  0811 20eb0b               jsr disableDisplay
+    29  0811 20e00b               jsr disableDisplay
     30                          
     31                            ; initialise queues
     32  0814 20af08               jsr qInit
     33                          
-    34  0817 20240c               jsr loadTiles
+    34  0817 20190c               jsr loadTiles
     35                          
     36                            ; set up and enable the display
-    37  081a 20f10b               jsr configDisplay
+    37  081a 20e60b               jsr configDisplay
     38                          
     39                            ; register the vsync interrupt handler
     40  081d 20bd0b               jsr registerVsyncIrq
@@ -213,7 +213,7 @@
     42  0820 58                   cli
     43                          
     44                            ; enter the game loop
-    45  0821 4ce00b               jmp waitForVsync
+    45  0821 4ca80e               jmp waitForVsync
     46                          
     47  0824 60                   rts
     48                          
@@ -732,123 +732,155 @@
     42                          }
     43                          
     44                          ; -----------------------------------------------------------------------------
-    45                          ; qInit: create a queue
+    45                          ; qPush: push a value to a queue
     46                          ; -----------------------------------------------------------------------------
-    47                          ; Inputs: none
-    48                          ; Returns:
-    49                          ;   x: Queue index
-    50                          ;   a: Queue MSB
-    51                          ; -----------------------------------------------------------------------------
-    52                          qCreate:
-    53                            ; get the current number of queues
-    54                            ; increment it and store it
-    55  08b3 ad0060               lda ADDR_QUEUE_HEADERS
-    56  08b6 1a                   inc
-    57  08b7 aa                   tax
-    58  08b8 8e0060               stx ADDR_QUEUE_HEADERS
+    47                          !macro qPush index {
+    48                            ldx index
+    49                            jsr qPush
+    50                          }
+    51                          
+    52                          ; -----------------------------------------------------------------------------
+    53                          ; qPop: pop a value from the queue
+    54                          ; -----------------------------------------------------------------------------
+    55                          !macro qPop index {
+    56                            ldx index
+    57                            jsr qPop
+    58                          }
     59                          
-    60                            ; now write the queue header (head and tail will be zero)
-    61  08bb 0a                   asl ; double it since there are 2 bytes per queue header
-    62  08bc a8                   tay
-    63  08bd a900                 lda #0
-    64  08bf 990060               sta ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD,y
-    65  08c2 990160               sta ADDR_QUEUE_HEADERS + QUEUE_OFFSET_TAIL,y
-    66  08c5 98                   tya
-    67  08c6 18                   clc
-    68  08c7 6960                 adc #>ADDR_QUEUE_HEADERS
-    69  08c9 60                   rts
-    70                          
-    71                          ; -----------------------------------------------------------------------------
-    72                          ; qPushBack: push a value onto the back of a queue
-    73                          ; -----------------------------------------------------------------------------
-    74                          ; inputs:
-    75                          ;   A: value to push
-    76                          ;   X: queue index
-    77                          ; -----------------------------------------------------------------------------
-    78                          qPush:
-    79                          qPushBack:
-    80  08ca 48                   pha
-    81  08cb da                   phx
-    82                            ; get queue tail
-    83                            
-    84  08cc 8a                   txa
-    85  08cd 0a                   asl
-    86  08ce 18                   clc
-    87  08cf 6960                 adc #>ADDR_QUEUE_HEADERS ; update code below to correct queue
-    88  08d1 8de108               sta .ldaOffsetPush + 2
-    89  08d4 8a                   txa   ; find the tail, place in y
-    90  08d5 0a                   asl
-    91  08d6 aa                   tax
-    92  08d7 bc0160               ldy ADDR_QUEUE_HEADERS + QUEUE_OFFSET_TAIL, x
-    93  08da fe0160               inc ADDR_QUEUE_HEADERS + QUEUE_OFFSET_TAIL, x
-    94  08dd fa                   plx
-    95  08de 68                   pla
-    96                          .ldaOffsetPush
-    97  08df 9900ee               sta SELF_MODIFY_MSB_ADDR, y
-    98  08e2 60                   rts
-    99                          
-   100                          ; -----------------------------------------------------------------------------
-   101                          ; qPopFront: pop a value from the from of the front of the queue
-   102                          ; -----------------------------------------------------------------------------
-   103                          ; inputs:
-   104                          ;   X: queue index
-   105                          ; returns
-   106                          ;   A: value
-   107                          ; -----------------------------------------------------------------------------
-   108                          qPop:
-   109                          qPopFront:
-   110  08e3 da                   phx
-   111  08e4 8a                   txa
-   112  08e5 18                   clc
-   113  08e6 6960                 adc #>ADDR_QUEUE_HEADERS ; update code below to correct queue
-   114  08e8 8df708               sta .ldaOffsetPop + 2
-   115  08eb 8a                   txa   ; find the head, place in y
-   116  08ec 0a                   asl
-   117  08ed aa                   tax
-   118  08ee bc0060               ldy ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD, x
-   119  08f1 fe0060               inc ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD, x
-   120  08f4 fa                   plx
-   121                          .ldaOffsetPop
-   122  08f5 b900ee               lda SELF_MODIFY_MSB_ADDR, y
-   123  08f8 60                   rts
-   124                          
-   125                          ; -----------------------------------------------------------------------------
-   126                          ; qSize: return the queue size
-   127                          ; -----------------------------------------------------------------------------
-   128                          ; inputs:
-   129                          ;   X: queue index
-   130                          ; returns
-   131                          ;   A: size
+    60                          ; -----------------------------------------------------------------------------
+    61                          ; qIterate: iterate a queue
+    62                          ; -----------------------------------------------------------------------------
+    63                          !macro qIterate index {
+    64                            ldx index
+    65                            jsr qIterate
+    66                          }
+    67                          
+    68                          ; -----------------------------------------------------------------------------
+    69                          ; qSize: return size of queue
+    70                          ; -----------------------------------------------------------------------------
+    71                          !macro qSize index {
+    72                            ldx index
+    73                            jsr qSize
+    74                          }
+    75                          
+    76                          ; -----------------------------------------------------------------------------
+    77                          ; qInit: create a queue
+    78                          ; -----------------------------------------------------------------------------
+    79                          ; Inputs: none
+    80                          ; Returns:
+    81                          ;   x: Queue index
+    82                          ;   a: Queue MSB
+    83                          ; -----------------------------------------------------------------------------
+    84                          qCreate:
+    85                            ; get the current number of queues
+    86                            ; increment it and store it
+    87  08b3 ad0060               lda ADDR_QUEUE_HEADERS
+    88  08b6 1a                   inc
+    89  08b7 aa                   tax
+    90  08b8 8e0060               stx ADDR_QUEUE_HEADERS
+    91                          
+    92                            ; now write the queue header (head and tail will be zero)
+    93  08bb 0a                   asl ; double it since there are 2 bytes per queue header
+    94  08bc a8                   tay
+    95  08bd a900                 lda #0
+    96  08bf 990060               sta ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD,y
+    97  08c2 990160               sta ADDR_QUEUE_HEADERS + QUEUE_OFFSET_TAIL,y
+    98  08c5 98                   tya
+    99  08c6 18                   clc
+   100  08c7 6960                 adc #>ADDR_QUEUE_HEADERS
+   101  08c9 60                   rts
+   102                          
+   103                          ; -----------------------------------------------------------------------------
+   104                          ; qPushBack: push a value onto the back of a queue
+   105                          ; -----------------------------------------------------------------------------
+   106                          ; inputs:
+   107                          ;   A: value to push
+   108                          ;   X: queue index
+   109                          ; -----------------------------------------------------------------------------
+   110                          qPush:
+   111                          qPushBack:
+   112  08ca 48                   pha
+   113  08cb da                   phx
+   114                            ; get queue tail
+   115                            
+   116  08cc 8a                   txa
+   117  08cd 0a                   asl
+   118  08ce 18                   clc
+   119  08cf 6960                 adc #>ADDR_QUEUE_HEADERS ; update code below to correct queue
+   120  08d1 8de108               sta .ldaOffsetPush + 2
+   121  08d4 8a                   txa   ; find the tail, place in y
+   122  08d5 0a                   asl
+   123  08d6 aa                   tax
+   124  08d7 bc0160               ldy ADDR_QUEUE_HEADERS + QUEUE_OFFSET_TAIL, x
+   125  08da fe0160               inc ADDR_QUEUE_HEADERS + QUEUE_OFFSET_TAIL, x
+   126  08dd fa                   plx
+   127  08de 68                   pla
+   128                          .ldaOffsetPush
+   129  08df 9900ee               sta SELF_MODIFY_MSB_ADDR, y
+   130  08e2 60                   rts
+   131                          
    132                          ; -----------------------------------------------------------------------------
-   133                          qSize:
-   134  08f9 8a                   txa
-   135  08fa 0a                   asl ; get offset
-   136  08fb a8                   tay
-   137  08fc b90160               lda ADDR_QUEUE_HEADERS + QUEUE_OFFSET_TAIL, y
-   138  08ff 38                   sec
-   139  0900 f90060               sbc ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD, y
-   140  0903 60                   rts
-   141                          
-   142                          ; -----------------------------------------------------------------------------
-   143                          ; qIterate: set up to iterate a queue
-   144                          ; -----------------------------------------------------------------------------
-   145                          ; inputs:
-   146                          ;   X: queue index
-   147                          ; returns
-   148                          ;   A: MSB byte of queue
-   149                          ;   Y: starting offset (head index)
-   150                          ; -----------------------------------------------------------------------------
-   151                          qIterate:
-   152  0904 8a                   txa
-   153  0905 0a                   asl ; get offset
-   154  0906 a8                   tay
-   155  0907 b90060               lda ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD, y
-   156  090a a8                   tay
-   157  090b 8a                   txa
-   158  090c 0a                   asl
-   159  090d 18                   clc
-   160  090e 6960                 adc #>ADDR_QUEUE_HEADERS
-   161  0910 60                   rts
+   133                          ; qPopFront: pop a value from the from of the front of the queue
+   134                          ; -----------------------------------------------------------------------------
+   135                          ; inputs:
+   136                          ;   X: queue index
+   137                          ; returns
+   138                          ;   A: value
+   139                          ; -----------------------------------------------------------------------------
+   140                          qPop:
+   141                          qPopFront:
+   142  08e3 da                   phx
+   143  08e4 8a                   txa
+   144  08e5 18                   clc
+   145  08e6 6960                 adc #>ADDR_QUEUE_HEADERS ; update code below to correct queue
+   146  08e8 8df708               sta .ldaOffsetPop + 2
+   147  08eb 8a                   txa   ; find the head, place in y
+   148  08ec 0a                   asl
+   149  08ed aa                   tax
+   150  08ee bc0060               ldy ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD, x
+   151  08f1 fe0060               inc ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD, x
+   152  08f4 fa                   plx
+   153                          .ldaOffsetPop
+   154  08f5 b900ee               lda SELF_MODIFY_MSB_ADDR, y
+   155  08f8 60                   rts
+   156                          
+   157                          ; -----------------------------------------------------------------------------
+   158                          ; qSize: return the queue size
+   159                          ; -----------------------------------------------------------------------------
+   160                          ; inputs:
+   161                          ;   X: queue index
+   162                          ; returns
+   163                          ;   A: size
+   164                          ; -----------------------------------------------------------------------------
+   165                          qSize:
+   166  08f9 8a                   txa
+   167  08fa 0a                   asl ; get offset
+   168  08fb a8                   tay
+   169  08fc b90160               lda ADDR_QUEUE_HEADERS + QUEUE_OFFSET_TAIL, y
+   170  08ff 38                   sec
+   171  0900 f90060               sbc ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD, y
+   172  0903 60                   rts
+   173                          
+   174                          ; -----------------------------------------------------------------------------
+   175                          ; qIterate: set up to iterate a queue
+   176                          ; -----------------------------------------------------------------------------
+   177                          ; inputs:
+   178                          ;   X: queue index
+   179                          ; returns
+   180                          ;   A: MSB byte of queue
+   181                          ;   Y: starting offset (head index)
+   182                          ; -----------------------------------------------------------------------------
+   183                          qIterate:
+   184  0904 8a                   txa
+   185  0905 0a                   asl ; get offset
+   186  0906 a8                   tay
+   187  0907 b90060               lda ADDR_QUEUE_HEADERS + QUEUE_OFFSET_HEAD, y
+   188  090a a8                   tay
+   189  090b 8a                   txa
+   190  090c 0a                   asl
+   191  090d 18                   clc
+   192  090e 6960                 adc #>ADDR_QUEUE_HEADERS
+   193  0910 60                   rts
 
 ; ******** Source: src\snake.asm
     53                          
@@ -1955,62 +1987,46 @@
     36                          
     37                          ZP_CURRENT_PALETTE       = $32
     38                          
-    39                          ;
-    40                          ; $33 - $7f unused
-    41                          ;
-    42                          
-    43                          ; -----------------------------------------------------------------------------
-    44                          ; \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
-    45                          ;  \ \ \ \ \ \ \ \ \ \ \ \ $80 - $A8: not available  \ \ \ \ \ \ \ \ \ \ \ \ \
-    46                          ; \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
-    47                          ; -----------------------------------------------------------------------------
-    48                          
-    49                          
-    50                          ;
-    51                          ; $a9 - $ff unused
-    52                          ;
+    39                          ZP_CURRENT_DIRECTION     = $33
+    40                          
+    41                          ZP_HEAD_CELL_X           = $34
+    42                          ZP_HEAD_CELL_Y           = $35
+    43                          
+    44                          ZP_ANIM_INDEX            = $36
+    45                          
+    46                          ZP_QUEUE_X_INDEX         = $40
+    47                          ZP_QUEUE_X               = $41
+    48                          ZP_QUEUE_X_LSB           = ZP_QUEUE_X
+    49                          ZP_QUEUE_X_MSB           = ZP_QUEUE_X + 1
+    50                          
+    51                          ZP_QUEUE_Y_INDEX         = $43
+    52                          ZP_QUEUE_Y               = $44
+    53                          ZP_QUEUE_Y_LSB           = ZP_QUEUE_Y
+    54                          ZP_QUEUE_Y_MSB           = ZP_QUEUE_Y + 1
+    55                          
+    56                          ZP_QUEUE_D_INDEX         = $46
+    57                          ZP_QUEUE_D               = $47
+    58                          ZP_QUEUE_D_LSB           = ZP_QUEUE_D
+    59                          ZP_QUEUE_D_MSB           = ZP_QUEUE_D + 1
+    60                          
+    61                          
+    62                          ;
+    63                          ; $35 - $7f unused
+    64                          ;
+    65                          
+    66                          ; -----------------------------------------------------------------------------
+    67                          ; \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
+    68                          ;  \ \ \ \ \ \ \ \ \ \ \ \ $80 - $A8: not available  \ \ \ \ \ \ \ \ \ \ \ \ \
+    69                          ; \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
+    70                          ; -----------------------------------------------------------------------------
+    71                          
+    72                          
+    73                          ;
+    74                          ; $a9 - $ff unused
+    75                          ;
 
 ; ******** Source: src\snake.asm
     66                          
-
-; ******** Source: src\gameloop.asm
-     1                          ; Snake - Commander X16
-     2                          ;
-     3                          ; Game loop
-     4                          ;
-     5                          ; Copyright (c) 2020 Troy Schrapel
-     6                          ;
-     7                          ; This code is licensed under the MIT license
-     8                          ;
-     9                          ; https://github.com/visrealm/cx16-snake
-    10                          ;
-    11                          ;
-    12                          
-    13                          
-    14                          SNAKE_GAMELOOP_ASM_ = 1
-    15                          
-    16                          
-    17                          ; -----------------------------------------------------------------------------
-    18                          ; loop to wait for vsync
-    19                          ; -----------------------------------------------------------------------------
-    20                          waitForVsync:
-    21  0be0 cb                   !byte $CB  ; WAI instruction
-    22  0be1 a530                 lda VSYNC_FLAG
-    23  0be3 d0fb                 bne waitForVsync
-    24                          
-    25                            ; flow on through to the.... 
-    26                          
-    27                          ; -----------------------------------------------------------------------------
-    28                          ; main game loop
-    29                          ; -----------------------------------------------------------------------------
-    30                          gameLoop:
-    31                          
-    32  0be5 a901                 lda #1
-    33  0be7 8530                 sta VSYNC_FLAG
-    34                          
-
-; ******** Source: src\snake.asm
-    67  0be9 80f5               
 
 ; ******** Source: src\display.asm
      1                          ; Snake - Commander X16
@@ -2043,8 +2059,8 @@
     28                          ; disable the display
     29                          ; -----------------------------------------------------------------------------
     30                          disableDisplay:
-    31  0beb a9018d299f           +vreg VERA_DC_VIDEO, VERA_VIDEO_OUTPUT_VGA
-    32  0bf0 60                   rts
+    31  0be0 a9018d299f           +vreg VERA_DC_VIDEO, VERA_VIDEO_OUTPUT_VGA
+    32  0be5 60                   rts
     33                          
     34                          ; -----------------------------------------------------------------------------
     35                          ; configure the display
@@ -2052,9 +2068,9 @@
     37                          configDisplay:
     38                          
     39                            ; set up layer 0 to hold our map tiles
-    40  0bf1 a9088d2e9f           +vreg VERA_L0_MAPBASE, VRADDR_MAP_BASE >> 9
-    41  0bf6 a9238d2f9f           +vreg VERA_L0_TILEBASE, (VRADDR_TILE_BASE >> 9) | VERA_TILE_WIDTH_16 | VERA_TILE_HEIGHT_16
-    42  0bfb a9128d2d9f           +vreg VERA_L0_CONFIG, VERA_CONFIG_MAP_WIDTH_64 | VERA_CONFIG_MAP_HEIGHT_32 | VERA_CONFIG_4BPP
+    40  0be6 a9088d2e9f           +vreg VERA_L0_MAPBASE, VRADDR_MAP_BASE >> 9
+    41  0beb a9238d2f9f           +vreg VERA_L0_TILEBASE, (VRADDR_TILE_BASE >> 9) | VERA_TILE_WIDTH_16 | VERA_TILE_HEIGHT_16
+    42  0bf0 a9128d2d9f           +vreg VERA_L0_CONFIG, VERA_CONFIG_MAP_WIDTH_64 | VERA_CONFIG_MAP_HEIGHT_32 | VERA_CONFIG_4BPP
     43                            ;+vreg VERA_L0_HSCROLL_H, 1
     44                          
     45                            ; layer 1 to hold our hud/ui
@@ -2064,18 +2080,18 @@
     49                          
     50                            ; other display settings
     51                          ;  +vreg VERA_DC_VIDEO, VERA_VIDEO_LAYER0_ENABLED | VERA_VIDEO_LAYER1_ENABLED | VERA_VIDEO_OUTPUT_VGA
-    52  0c00 a9118d299f           +vreg VERA_DC_VIDEO, VERA_VIDEO_LAYER0_ENABLED | VERA_VIDEO_OUTPUT_VGA
-    53  0c05 a9808d2a9f           +vreg VERA_DC_HSCALE, VERA_SCALE_1x
-    54  0c0a a9808d2b9f           +vreg VERA_DC_VSCALE, VERA_SCALE_1x
-    55  0c0f a9018d269f           +vreg VERA_IEN, VERA_IEN_VSYNC
-    56  0c14 a9018d279f           +vreg VERA_ISR, VERA_IEN_VSYNC
+    52  0bf5 a9118d299f           +vreg VERA_DC_VIDEO, VERA_VIDEO_LAYER0_ENABLED | VERA_VIDEO_OUTPUT_VGA
+    53  0bfa a9808d2a9f           +vreg VERA_DC_HSCALE, VERA_SCALE_1x
+    54  0bff a9808d2b9f           +vreg VERA_DC_VSCALE, VERA_SCALE_1x
+    55  0c04 a9018d269f           +vreg VERA_IEN, VERA_IEN_VSYNC
+    56  0c09 a9018d279f           +vreg VERA_ISR, VERA_IEN_VSYNC
     57                            
-    58  0c19 60                   rts
+    58  0c0e 60                   rts
     59                            
     60                            ; -----------------------------------------------------------------------------
 
 ; ******** Source: src\snake.asm
-    68                          
+    67                          
 
 ; ******** Source: src\tiles.asm
      1                          ; Snake - Commander X16
@@ -2095,7 +2111,7 @@
     15                          HALF_TILE_SIZE    = TILE_SIZE / 2
     16                          TILE_SIZE_BYTES   = 16 * 16 / 2  ; 16 x 16 x 4bpp
     17                          
-    18  0c1a 736e616b652e7063...snakePcx:   !text "snake.pcx",0
+    18  0c0f 736e616b652e7063...snakePcx:   !text "snake.pcx",0
     19                          
     20                          ; -----------------------------------------------------------------------------
     21                          ; tileset addresses
@@ -2117,251 +2133,392 @@
     37                          TILE_FLIP_V = $08
     38                          
     39                          
-    40                          !macro ldaTileId tileAddress { lda #(tileAddress - tileTable) >> 1 }
-    41                          !macro cmpTileId tileAddress { cmp #(tileAddress - tileTable) >> 1 }
-    42                          !macro byteTileId tileAddress { !byte (tileAddress - tileTable) >> 1 }
+    40                          !macro ldaTileId tileAddress { lda #(tileAddress - tileTable) >> 3 }
+    41                          !macro cmpTileId tileAddress { cmp #(tileAddress - tileTable) >> 3 }
+    42                          !macro byteTileId tileAddress { !byte (tileAddress - tileTable) >> 3 }
     43                          
     44                          ; -----------------------------------------------------------------------------
     45                          ; load the tiles from disk into vram
     46                          ; -----------------------------------------------------------------------------
     47                          loadTiles:
-    48  0c24 a9008d619f           +setRamBank RAM_BANK_SCRATCH
-    49  0c29 a9018d259fa9118d...  +vLoadPcx snakePcx,  SNAKE_ADDR, SNAKE_PAL_ODD
-    50  0c5b a9018d259fa9118d...  +vLoadPcx snakePcx,  SNAKE_ADDR, SNAKE_PAL_EVEN
-    51                          
-    52  0c8d a9108d229fa9108d...  +vset VRADDR_MAP_BASE
-    53                          
-    54  0c9c 6430                 stz ZP_CURRENT_CELL_X
-    55  0c9e 6431                 stz ZP_CURRENT_CELL_Y
-    56  0ca0 20e50c               jsr setCellVram
-    57  0ca3 a900                 lda #0
-    58  0ca5 20040d               jsr outputTile
+    48  0c19 a9008d619f           +setRamBank RAM_BANK_SCRATCH
+    49  0c1e a9018d259fa9118d...  +vLoadPcx snakePcx,  SNAKE_ADDR, SNAKE_PAL_ODD
+    50  0c50 a9018d259fa9118d...  +vLoadPcx snakePcx,  SNAKE_ADDR, SNAKE_PAL_EVEN
+    51                            
+    52  0c82 a9118d229fa9fa8d...  +vset VERA_PALETTE + (SNAKE_PAL_EVEN << 5) + 30
+    53  0c91 a9d3                 lda #$d3
+    54  0c93 8d239f               sta VERA_DATA0
+    55  0c96 a908                 lda #$08
+    56  0c98 8d239f               sta VERA_DATA0
+    57                          
+    58  0c9b a9108d229fa9108d...  +vset VRADDR_MAP_BASE
     59                          
-    60  0ca8 e631                 inc ZP_CURRENT_CELL_Y
-    61  0caa 20e50c               jsr setCellVram
-    62  0cad a901                 lda #1
-    63  0caf 20040d               jsr outputTile
-    64                          
-    65  0cb2 e631                 inc ZP_CURRENT_CELL_Y
-    66  0cb4 20e50c               jsr setCellVram
-    67  0cb7 a902                 lda #2
-    68  0cb9 20040d               jsr outputTile
-    69                          
-    70                          
-    71  0cbc e631                 inc ZP_CURRENT_CELL_Y
-    72  0cbe 20e50c               jsr setCellVram
-    73  0cc1 a903                 lda #3
-    74  0cc3 20040d               jsr outputTile
-    75                          
-    76  0cc6 e630                 inc ZP_CURRENT_CELL_X
-    77  0cc8 20e50c               jsr setCellVram
-    78  0ccb a904                 lda #4
-    79  0ccd 20040d               jsr outputTile
+    60  0caa a01f                 ldy #31
+    61                          --
+    62  0cac a23f                 ldx #63
+    63                          -
+    64  0cae 8630                 stx ZP_CURRENT_CELL_X
+    65  0cb0 8431                 sty ZP_CURRENT_CELL_Y
+    66  0cb2 202f0d               jsr setCellVram
+    67  0cb5 a914                 +ldaTileId tileBlank
+    68  0cb7 204e0d               jsr outputTile
+    69  0cba ca                   dex
+    70  0cbb 10f1                 bpl -
+    71  0cbd 88                   dey
+    72  0cbe 10ec                 bpl --
+    73                          
+    74  0cc0 6441                 stz ZP_QUEUE_X_LSB
+    75  0cc2 20b30886408542       +qCreate ZP_QUEUE_X_INDEX, ZP_QUEUE_X_MSB
+    76  0cc9 6444                 stz ZP_QUEUE_Y_LSB
+    77  0ccb 20b30886438545       +qCreate ZP_QUEUE_Y_INDEX, ZP_QUEUE_Y_MSB
+    78  0cd2 6447                 stz ZP_QUEUE_D_LSB
+    79  0cd4 20b30886468548       +qCreate ZP_QUEUE_D_INDEX, ZP_QUEUE_D_MSB
     80                          
-    81  0cd0 e631                 inc ZP_CURRENT_CELL_Y
-    82  0cd2 20e50c               jsr setCellVram
-    83  0cd5 a905                 lda #5
-    84  0cd7 20040d               jsr outputTile
-    85                          
-    86  0cda e630                 inc ZP_CURRENT_CELL_X
-    87  0cdc 20e50c               jsr setCellVram
-    88  0cdf a906                 lda #6
-    89  0ce1 20040d               jsr outputTile
+    81  0cdb a900                 lda #0
+    82  0cdd a64020ca08           +qPush ZP_QUEUE_X_INDEX
+    83  0ce2 1a                   inc
+    84  0ce3 a64020ca08           +qPush ZP_QUEUE_X_INDEX
+    85  0ce8 1a                   inc
+    86  0ce9 a64020ca08           +qPush ZP_QUEUE_X_INDEX
+    87  0cee 1a                   inc
+    88  0cef a64020ca08           +qPush ZP_QUEUE_X_INDEX
+    89  0cf4 8534                 sta ZP_HEAD_CELL_X
     90                          
-    91                          
-    92  0ce4 60                   rts
-    93                          
-    94                          
-    95                          setCellVram:
-    96  0ce5 a530                 lda ZP_CURRENT_CELL_X
-    97  0ce7 0a                   asl
-    98  0ce8 0a                   asl
-    99  0ce9 8d209f             	sta VERA_ADDRx_L
-   100                          
-   101  0cec a910               	lda #<(VRADDR_MAP_BASE >> 8)
-   102  0cee 18                   clc
-   103  0cef 6531                 adc ZP_CURRENT_CELL_Y
-   104  0cf1 8d219f             	sta VERA_ADDRx_M
+    91  0cf6 a907                 lda #7
+    92  0cf8 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
+    93  0cfd a64320ca08           +qPush ZP_QUEUE_Y_INDEX
+    94  0d02 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
+    95  0d07 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
+    96  0d0c 8535                 sta ZP_HEAD_CELL_Y
+    97                          
+    98  0d0e a90f                 lda #DIR_RIGHT << 2 | DIR_RIGHT
+    99  0d10 a90f                 +ldaTileId tileBodyRight
+   100  0d12 a64620ca08           +qPush ZP_QUEUE_D_INDEX
+   101  0d17 a64620ca08           +qPush ZP_QUEUE_D_INDEX
+   102  0d1c a64620ca08           +qPush ZP_QUEUE_D_INDEX
+   103  0d21 a64620ca08           +qPush ZP_QUEUE_D_INDEX
+   104                          
    105                          
-   106  0cf4 18                   clc
-   107  0cf5 6432                 stz ZP_CURRENT_PALETTE
-   108  0cf7 a530                 lda ZP_CURRENT_CELL_X
-   109  0cf9 6531                 adc ZP_CURRENT_CELL_Y
-   110  0cfb 8901                 bit #1
-   111  0cfd f004                 beq +
-   112  0cff a910                 lda #16
-   113  0d01 8532                 sta ZP_CURRENT_PALETTE
-   114                          +
-   115                          
-   116  0d03 60                   rts
-   117                          
-   118                          
-   119                          
-   120                          !macro outputTile startOffset {
-   121                          
-   122                          
-   123                            lda startOffset, y
-   124                            sta VERA_DATA0  
-   125                            lda startOffset + 1, y  
-   126                            ora ZP_CURRENT_PALETTE
-   127                            sta VERA_DATA0
-   128                            lda startOffset + 2, y
-   129                            sta VERA_DATA0  
-   130                            lda startOffset + 3, y
-   131                            ora ZP_CURRENT_PALETTE
-   132                            sta VERA_DATA0
-   133                            clc
-   134                            lda VERA_ADDRx_L
-   135                            adc #124
-   136                            sta VERA_ADDRx_L
-   137                            lda startOffset + 4, y
-   138                            sta VERA_DATA0  
-   139                            lda startOffset + 5, y
-   140                            ora ZP_CURRENT_PALETTE
-   141                            sta VERA_DATA0
-   142                            lda startOffset + 6, y
-   143                            sta VERA_DATA0  
-   144                            lda startOffset + 7, y
-   145                            ora ZP_CURRENT_PALETTE
-   146                            sta VERA_DATA0
-   147                          }
-   148                          
-   149                          
-   150                          
-   151                          
-   152                          ; -----------------------------------------------------------------------------
-   153                          ; outputTile
-   154                          ; -----------------------------------------------------------------------------
-   155                          ; Inputs:
-   156                          ;  a: tileId
-   157                          ;
-   158                          ; Prerequisites:
-   159                          ;  VERA address already set
-   160                          ; -----------------------------------------------------------------------------
-   161                          outputTile:
-   162  0d04 0a                   asl ; 2x
-   163  0d05 0a                   asl ; 4x
-   164  0d06 0a                   asl ; 8x
-   165  0d07 a8                   tay
+   106  0d26 a903                 lda #DIR_RIGHT
+   107  0d28 8533                 sta ZP_CURRENT_DIRECTION
+   108                          
+   109  0d2a a901                 lda #1
+   110  0d2c 8536                 sta ZP_ANIM_INDEX
+   111                          
+   112  0d2e 60                   rts
+   113                          
+   114                          
+   115                          setCellVram:
+   116  0d2f a530                 lda ZP_CURRENT_CELL_X
+   117  0d31 0a                   asl
+   118  0d32 0a                   asl
+   119  0d33 8d209f             	sta VERA_ADDRx_L
+   120                          
+   121  0d36 a910               	lda #<(VRADDR_MAP_BASE >> 8)
+   122  0d38 18                   clc
+   123  0d39 6531                 adc ZP_CURRENT_CELL_Y
+   124  0d3b 8d219f             	sta VERA_ADDRx_M
+   125                          
+   126  0d3e 18                   clc
+   127  0d3f 6432                 stz ZP_CURRENT_PALETTE
+   128  0d41 a530                 lda ZP_CURRENT_CELL_X
+   129  0d43 6531                 adc ZP_CURRENT_CELL_Y
+   130  0d45 8901                 bit #1
+   131  0d47 f004                 beq +
+   132  0d49 a910                 lda #16
+   133  0d4b 8532                 sta ZP_CURRENT_PALETTE
+   134                          +
+   135                          
+   136  0d4d 60                   rts
+   137                          
+   138                          
+   139                          
+   140                          !macro outputTile startOffset {
+   141                            lda startOffset, y
+   142                            sta VERA_DATA0  
+   143                            lda startOffset + 1, y  
+   144                            ora ZP_CURRENT_PALETTE
+   145                            sta VERA_DATA0
+   146                            lda startOffset + 2, y
+   147                            sta VERA_DATA0  
+   148                            lda startOffset + 3, y
+   149                            ora ZP_CURRENT_PALETTE
+   150                            sta VERA_DATA0
+   151                            clc
+   152                            lda VERA_ADDRx_L
+   153                            adc #124
+   154                            sta VERA_ADDRx_L
+   155                            lda startOffset + 4, y
+   156                            sta VERA_DATA0  
+   157                            lda startOffset + 5, y
+   158                            ora ZP_CURRENT_PALETTE
+   159                            sta VERA_DATA0
+   160                            lda startOffset + 6, y
+   161                            sta VERA_DATA0  
+   162                            lda startOffset + 7, y
+   163                            ora ZP_CURRENT_PALETTE
+   164                            sta VERA_DATA0
+   165                          }
    166                          
-   167  0d08 9042                 bcc .firstHalf
-   168                          
-   169  0d0a b9000f8d239fb901...  +outputTile tileTable + $100
-   170  0d4b 60                   rts
-   171                          
-   172                          .firstHalf:
-   173  0d4c b9000e8d239fb901...  +outputTile tileTable
-   174  0d8d 60                   rts
-   175                          ; -----------------------------------------------------------------------------
-   176                          
-   177                          
-   178                          ; -----------------------------------------------------------------------------
-   179                          ; tile definitions
-   180                          ; -----------------------------------------------------------------------------
-   181                          ; two bytes per tile in the VERA tile format:
-   182                          ;
-   183                          ; Offset	Bit 7	Bit 6	Bit 5	Bit 4	Bit 3	Bit 2	Bit 1	Bit 0
-   184                          ; 0	        [ Tile index (7:0)                                            ]
-   185                          ; 1	        [ Palette offset              ][V-flip][H-flip][Tile index 9:8]
-   186                          ;
-   187                          ; -----------------------------------------------------------------------------
-   188                          !macro tileDef index, tilesetAddr, tileOffset, tilePalette, tileFlags {
-   189                              
-   190                              .tilesetOffset = (tilesetAddr - VRADDR_TILE_BASE) / TILE_SIZE_BYTES
+   167                          
+   168                          DIR_UP    = $0
+   169                          DIR_LEFT  = $1
+   170                          DIR_DOWN  = $2
+   171                          DIR_RIGHT = $3
+   172                          
+   173                          
+   174                          ; -----------------------------------------------------------------------------
+   175                          ; outputTile
+   176                          ; -----------------------------------------------------------------------------
+   177                          ; Inputs:
+   178                          ;  a: tileId
+   179                          ;
+   180                          ; Prerequisites:
+   181                          ;  VERA address already set
+   182                          ; -----------------------------------------------------------------------------
+   183                          outputTile:
+   184  0d4e 5a                   phy
+   185  0d4f 0a                   asl ; 2x
+   186  0d50 0a                   asl ; 4x
+   187  0d51 0a                   asl ; 8x
+   188  0d52 a8                   tay
+   189                          
+   190  0d53 9043                 bcc .firstHalf
    191                          
-   192                              ; tile offset
-   193                              .tileOffset    = .tilesetOffset + tileOffset
-   194                          
-   195                              ; tile index (7:0)
-   196                              !byte .tileOffset & $ff
-   197                          
-   198                              ; palette offset (7:4), flags, tile offset (9:8)
-   199                              !byte (tilePalette << 4) | tileFlags | (.tileOffset >> 8)
-   200                          }
+   192  0d55 b9000f8d239fb901...  +outputTile tileTable + $100
+   193  0d96 7a                   ply
+   194  0d97 60                   rts
+   195                          
+   196                          .firstHalf:
+   197  0d98 b9000e8d239fb901...  +outputTile tileTable
+   198  0dd9 7a                   ply
+   199  0dda 60                   rts
+   200                          ; -----------------------------------------------------------------------------
    201                          
-   202  0d8e eaeaeaeaeaeaeaea...!align 255,0
-   203                          tileTable:
-   204  0e00 0620               tileBlank:        +tileDef   0, SNAKE_ADDR, 6,  SNAKE_PAL, 0
-   205  0e02 0620                                 +tileDef   0, SNAKE_ADDR, 6,  SNAKE_PAL, 0
-   206  0e04 0620                                 +tileDef   0, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
-   207  0e06 0620                                 +tileDef   0, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
-   208  0e08 0020               tileHeadUp:       +tileDef   1, SNAKE_ADDR, 0,  SNAKE_PAL, 0
-   209  0e0a 1020                                 +tileDef   1, SNAKE_ADDR, 16, SNAKE_PAL, 0
-   210  0e0c 0120                                 +tileDef   1, SNAKE_ADDR, 1,  SNAKE_PAL, 0                  
-   211  0e0e 1120                                 +tileDef   1, SNAKE_ADDR, 17, SNAKE_PAL, 0                  
-   212  0e10 1d2c               tileHeadLeft:     +tileDef   2, SNAKE_ADDR, 29, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   213  0e12 0d2c                                 +tileDef   2, SNAKE_ADDR, 13, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   214  0e14 1c2c                                 +tileDef   2, SNAKE_ADDR, 28, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   215  0e16 0c2c                                 +tileDef   2, SNAKE_ADDR, 12, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   216  0e18 112c               tileHeadDown:     +tileDef   3, SNAKE_ADDR, 17, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   217  0e1a 012c                                 +tileDef   3, SNAKE_ADDR, 1,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   218  0e1c 102c                                 +tileDef   3, SNAKE_ADDR, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   219  0e1e 002c                                 +tileDef   3, SNAKE_ADDR, 0,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   220  0e20 0c20               tileHeadRight     +tileDef   4, SNAKE_ADDR, 12, SNAKE_PAL, 0
-   221  0e22 1c20                                 +tileDef   4, SNAKE_ADDR, 28, SNAKE_PAL, 0
-   222  0e24 0d20                                 +tileDef   4, SNAKE_ADDR, 13, SNAKE_PAL, 0
-   223  0e26 1d20                                 +tileDef   4, SNAKE_ADDR, 29, SNAKE_PAL, 0
-   224  0e28 0220               tileBodyUp:       +tileDef   5, SNAKE_ADDR, 2,  SNAKE_PAL, 0
-   225  0e2a 1220                                 +tileDef   5, SNAKE_ADDR, 18, SNAKE_PAL, 0
-   226  0e2c 0220                                 +tileDef   5, SNAKE_ADDR, 2,  SNAKE_PAL, 0                  
-   227  0e2e 1220                                 +tileDef   5, SNAKE_ADDR, 18, SNAKE_PAL, 0                  
-   228  0e30 132c               tileBodyLeft      +tileDef   6, SNAKE_ADDR, 19, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   229  0e32 132c                                 +tileDef   6, SNAKE_ADDR, 19, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   230  0e34 032c                                 +tileDef   6, SNAKE_ADDR, 3,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   231  0e36 032c                                 +tileDef   6, SNAKE_ADDR, 3,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   232  0e38 122c               tileBodyDown:     +tileDef   7, SNAKE_ADDR, 18, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   233  0e3a 022c                                 +tileDef   7, SNAKE_ADDR, 2,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   234  0e3c 122c                                 +tileDef   7, SNAKE_ADDR, 18, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   235  0e3e 022c                                 +tileDef   7, SNAKE_ADDR, 2,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   236  0e40 0320               tileBodyRight     +tileDef   8, SNAKE_ADDR, 3,  SNAKE_PAL, 0
-   237  0e42 0320                                 +tileDef   8, SNAKE_ADDR, 3,  SNAKE_PAL, 0
-   238  0e44 1320                                 +tileDef   8, SNAKE_ADDR, 19, SNAKE_PAL, 0
-   239  0e46 1320                                 +tileDef   8, SNAKE_ADDR, 19, SNAKE_PAL, 0
-   240  0e48 0420               tileTailUp:       +tileDef   9, SNAKE_ADDR, 4,  SNAKE_PAL, 0
-   241  0e4a 1420                                 +tileDef   9, SNAKE_ADDR, 20, SNAKE_PAL, 0
-   242  0e4c 0520                                 +tileDef   9, SNAKE_ADDR, 5,  SNAKE_PAL, 0                  
-   243  0e4e 1520                                 +tileDef   9, SNAKE_ADDR, 21, SNAKE_PAL, 0                  
-   244  0e50 1f2c               tileTailLeft      +tileDef   10, SNAKE_ADDR, 31, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   245  0e52 0f2c                                 +tileDef   10, SNAKE_ADDR, 15, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   246  0e54 1e2c                                 +tileDef   10, SNAKE_ADDR, 30, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   247  0e56 0e2c                                 +tileDef   10, SNAKE_ADDR, 14, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   248  0e58 152c               tileTailDown:     +tileDef   11, SNAKE_ADDR, 21, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   249  0e5a 052c                                 +tileDef   11, SNAKE_ADDR, 5,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   250  0e5c 142c                                 +tileDef   11, SNAKE_ADDR, 20, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   251  0e5e 042c                                 +tileDef   11, SNAKE_ADDR, 4,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   252  0e60 0e20               tileTailRight     +tileDef   12, SNAKE_ADDR, 14, SNAKE_PAL, 0
-   253  0e62 1e20                                 +tileDef   12, SNAKE_ADDR, 30, SNAKE_PAL, 0
-   254  0e64 0f20                                 +tileDef   12, SNAKE_ADDR, 15, SNAKE_PAL, 0
-   255  0e66 1f20                                 +tileDef   12, SNAKE_ADDR, 31, SNAKE_PAL, 0
-   256  0e68 1b2c               tileBodyUpLeft:   +tileDef   13, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   257  0e6a 0b2c                                 +tileDef   13, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   258  0e6c 1a2c                                 +tileDef   13, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   259  0e6e 0a2c                                 +tileDef   13, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   260  0e70 0820               tileBodyLeftDown: +tileDef   14, SNAKE_ADDR, 8,  SNAKE_PAL, 0
-   261  0e72 1820                                 +tileDef   14, SNAKE_ADDR, 24, SNAKE_PAL, 0
-   262  0e74 0920                                 +tileDef   14, SNAKE_ADDR, 9,  SNAKE_PAL, 0
-   263  0e76 1920                                 +tileDef   14, SNAKE_ADDR, 25, SNAKE_PAL, 0
-   264  0e78 0a20               tileBodyDownRight:+tileDef   15, SNAKE_ADDR, 10, SNAKE_PAL, 0
-   265  0e7a 1a20                                 +tileDef   15, SNAKE_ADDR, 26, SNAKE_PAL, 0
-   266  0e7c 0b20                                 +tileDef   15, SNAKE_ADDR, 11, SNAKE_PAL, 0
-   267  0e7e 1b20                                 +tileDef   15, SNAKE_ADDR, 27, SNAKE_PAL, 0
-   268  0e80 192c               tileBodyRightUp:  +tileDef   16, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   269  0e82 092c                                 +tileDef   16, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   270  0e84 182c                                 +tileDef   16, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   271  0e86 082c                                 +tileDef   16, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   272  0e88 0928               tileBodyLeftUp:   +tileDef   17, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_V
-   273  0e8a 1928                                 +tileDef   17, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_V
-   274  0e8c 0828                                 +tileDef   17, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_V
-   275  0e8e 1828                                 +tileDef   17, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_V
-   276  0e90 1a24               tileBodyDownLeft: +tileDef   18, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_H
-   277  0e92 0a24                                 +tileDef   18, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_H
-   278  0e94 1b24                                 +tileDef   18, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_H
-   279  0e96 0b24                                 +tileDef   18, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_H
-   280  0e98 1824               tileBodyRightDown:+tileDef   19, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_H
-   281  0e9a 0824                                 +tileDef   19, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_H
-   282  0e9c 1924                                 +tileDef   19, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_H
-   283  0e9e 0924                                 +tileDef   19, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_H
-   284  0ea0 0b28               tileBodyUpRight:  +tileDef   20, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_V
-   285  0ea2 1b28                                 +tileDef   20, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_V
-   286  0ea4 0a28                                 +tileDef   20, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_V
-   287  0ea6 1a28                                 +tileDef   20, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_V
+   202                          
+   203                          ; -----------------------------------------------------------------------------
+   204                          ; tile definitions
+   205                          ; -----------------------------------------------------------------------------
+   206                          ; two bytes per tile in the VERA tile format:
+   207                          ;
+   208                          ; Offset	Bit 7	Bit 6	Bit 5	Bit 4	Bit 3	Bit 2	Bit 1	Bit 0
+   209                          ; 0	        [ Tile index (7:0)                                            ]
+   210                          ; 1	        [ Palette offset              ][V-flip][H-flip][Tile index 9:8]
+   211                          ;
+   212                          ; -----------------------------------------------------------------------------
+   213                          !macro tileDef index, tilesetAddr, tileOffset, tilePalette, tileFlags {
+   214                              
+   215                              .tilesetOffset = (tilesetAddr - VRADDR_TILE_BASE) / TILE_SIZE_BYTES
+   216                          
+   217                              ; tile offset
+   218                              .tileOffset    = .tilesetOffset + tileOffset
+   219                          
+   220                              ; tile index (7:0)
+   221                              !byte .tileOffset & $ff
+   222                          
+   223                              ; palette offset (7:4), flags, tile offset (9:8)
+   224                              !byte (tilePalette << 4) | tileFlags | (.tileOffset >> 8)
+   225                          }
+   226                          
+   227  0ddb eaeaeaeaeaeaeaea...!align 255,0
+   228                          tileTable:
+   229  0e00 0220               tileBodyUp:       +tileDef    0, SNAKE_ADDR, 2,  SNAKE_PAL, 0
+   230  0e02 1220                                 +tileDef    0, SNAKE_ADDR, 18, SNAKE_PAL, 0
+   231  0e04 0220                                 +tileDef    0, SNAKE_ADDR, 2,  SNAKE_PAL, 0                  
+   232  0e06 1220                                 +tileDef    0, SNAKE_ADDR, 18, SNAKE_PAL, 0                  
+   233  0e08 1b2c               tileBodyUpLeft:   +tileDef    1, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   234  0e0a 0b2c                                 +tileDef    1, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   235  0e0c 1a2c                                 +tileDef    1, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   236  0e0e 0a2c                                 +tileDef    1, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   237  0e10 112c               tileHeadDown:     +tileDef    2, SNAKE_ADDR, 17, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   238  0e12 012c                                 +tileDef    2, SNAKE_ADDR, 1,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   239  0e14 102c                                 +tileDef    2, SNAKE_ADDR, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   240  0e16 002c                                 +tileDef    2, SNAKE_ADDR, 0,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   241  0e18 0b28               tileBodyUpRight:  +tileDef    3, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_V
+   242  0e1a 1b28                                 +tileDef    3, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_V
+   243  0e1c 0a28                                 +tileDef    3, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_V
+   244  0e1e 1a28                                 +tileDef    3, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_V
+   245  0e20 0928               tileBodyLeftUp:   +tileDef    4, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_V
+   246  0e22 1928                                 +tileDef    4, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_V
+   247  0e24 0828                                 +tileDef    4, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_V
+   248  0e26 1828                                 +tileDef    4, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_V
+   249  0e28 132c               tileBodyLeft      +tileDef    5, SNAKE_ADDR, 19, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   250  0e2a 132c                                 +tileDef    5, SNAKE_ADDR, 19, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   251  0e2c 032c                                 +tileDef    5, SNAKE_ADDR, 3,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   252  0e2e 032c                                 +tileDef    5, SNAKE_ADDR, 3,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   253  0e30 0820               tileBodyLeftDown: +tileDef    6, SNAKE_ADDR, 8,  SNAKE_PAL, 0
+   254  0e32 1820                                 +tileDef    6, SNAKE_ADDR, 24, SNAKE_PAL, 0
+   255  0e34 0920                                 +tileDef    6, SNAKE_ADDR, 9,  SNAKE_PAL, 0
+   256  0e36 1920                                 +tileDef    6, SNAKE_ADDR, 25, SNAKE_PAL, 0
+   257  0e38 0c20               tileHeadRight     +tileDef    7, SNAKE_ADDR, 12, SNAKE_PAL, 0
+   258  0e3a 1c20                                 +tileDef    7, SNAKE_ADDR, 28, SNAKE_PAL, 0
+   259  0e3c 0d20                                 +tileDef    7, SNAKE_ADDR, 13, SNAKE_PAL, 0
+   260  0e3e 1d20                                 +tileDef    7, SNAKE_ADDR, 29, SNAKE_PAL, 0
+   261  0e40 0020               tileHeadUp:       +tileDef    8, SNAKE_ADDR, 0,  SNAKE_PAL, 0
+   262  0e42 1020                                 +tileDef    8, SNAKE_ADDR, 16, SNAKE_PAL, 0
+   263  0e44 0120                                 +tileDef    8, SNAKE_ADDR, 1,  SNAKE_PAL, 0                  
+   264  0e46 1120                                 +tileDef    8, SNAKE_ADDR, 17, SNAKE_PAL, 0                  
+   265  0e48 1a24               tileBodyDownLeft: +tileDef    9, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_H
+   266  0e4a 0a24                                 +tileDef    9, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_H
+   267  0e4c 1b24                                 +tileDef    9, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_H
+   268  0e4e 0b24                                 +tileDef    9, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_H
+   269  0e50 122c               tileBodyDown:     +tileDef   10, SNAKE_ADDR, 18, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   270  0e52 022c                                 +tileDef   10, SNAKE_ADDR, 2,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   271  0e54 122c                                 +tileDef   10, SNAKE_ADDR, 18, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   272  0e56 022c                                 +tileDef   10, SNAKE_ADDR, 2,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   273  0e58 0a20               tileBodyDownRight:+tileDef   11, SNAKE_ADDR, 10, SNAKE_PAL, 0
+   274  0e5a 1a20                                 +tileDef   11, SNAKE_ADDR, 26, SNAKE_PAL, 0
+   275  0e5c 0b20                                 +tileDef   11, SNAKE_ADDR, 11, SNAKE_PAL, 0
+   276  0e5e 1b20                                 +tileDef   11, SNAKE_ADDR, 27, SNAKE_PAL, 0
+   277  0e60 192c               tileBodyRightUp:  +tileDef   12, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   278  0e62 092c                                 +tileDef   12, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   279  0e64 182c                                 +tileDef   12, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   280  0e66 082c                                 +tileDef   12, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   281  0e68 1d2c               tileHeadLeft:     +tileDef   13, SNAKE_ADDR, 29, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   282  0e6a 0d2c                                 +tileDef   13, SNAKE_ADDR, 13, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   283  0e6c 1c2c                                 +tileDef   13, SNAKE_ADDR, 28, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   284  0e6e 0c2c                                 +tileDef   13, SNAKE_ADDR, 12, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   285  0e70 1824               tileBodyRightDown:+tileDef   14, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_H
+   286  0e72 0824                                 +tileDef   14, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_H
+   287  0e74 1924                                 +tileDef   14, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_H
+   288  0e76 0924                                 +tileDef   14, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_H
+   289  0e78 0320               tileBodyRight     +tileDef   15, SNAKE_ADDR, 3,  SNAKE_PAL, 0
+   290  0e7a 0320                                 +tileDef   15, SNAKE_ADDR, 3,  SNAKE_PAL, 0
+   291  0e7c 1320                                 +tileDef   15, SNAKE_ADDR, 19, SNAKE_PAL, 0
+   292  0e7e 1320                                 +tileDef   15, SNAKE_ADDR, 19, SNAKE_PAL, 0
+   293  0e80 1f2c               tileTailLeft      +tileDef   17, SNAKE_ADDR, 31, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   294  0e82 0f2c                                 +tileDef   17, SNAKE_ADDR, 15, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   295  0e84 1e2c                                 +tileDef   17, SNAKE_ADDR, 30, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   296  0e86 0e2c                                 +tileDef   17, SNAKE_ADDR, 14, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   297  0e88 0420               tileTailUp:       +tileDef   16, SNAKE_ADDR, 4,  SNAKE_PAL, 0
+   298  0e8a 1420                                 +tileDef   16, SNAKE_ADDR, 20, SNAKE_PAL, 0
+   299  0e8c 0520                                 +tileDef   16, SNAKE_ADDR, 5,  SNAKE_PAL, 0                  
+   300  0e8e 1520                                 +tileDef   16, SNAKE_ADDR, 21, SNAKE_PAL, 0                  
+   301  0e90 152c               tileTailDown:     +tileDef   18, SNAKE_ADDR, 21, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   302  0e92 052c                                 +tileDef   18, SNAKE_ADDR, 5,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   303  0e94 142c                                 +tileDef   18, SNAKE_ADDR, 20, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   304  0e96 042c                                 +tileDef   18, SNAKE_ADDR, 4,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   305  0e98 0e20               tileTailRight:    +tileDef   19, SNAKE_ADDR, 14, SNAKE_PAL, 0
+   306  0e9a 1e20                                 +tileDef   19, SNAKE_ADDR, 30, SNAKE_PAL, 0
+   307  0e9c 0f20                                 +tileDef   19, SNAKE_ADDR, 15, SNAKE_PAL, 0
+   308  0e9e 1f20                                 +tileDef   19, SNAKE_ADDR, 31, SNAKE_PAL, 0
+   309  0ea0 0620               tileBlank:        +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0
+   310  0ea2 0620                                 +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0
+   311  0ea4 0620                                 +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
+   312  0ea6 0620                                 +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
+
+; ******** Source: src\snake.asm
+    68                          
+
+; ******** Source: src\gameloop.asm
+     1                          ; Snake - Commander X16
+     2                          ;
+     3                          ; Game loop
+     4                          ;
+     5                          ; Copyright (c) 2020 Troy Schrapel
+     6                          ;
+     7                          ; This code is licensed under the MIT license
+     8                          ;
+     9                          ; https://github.com/visrealm/cx16-snake
+    10                          ;
+    11                          ;
+    12                          
+    13                          
+    14                          SNAKE_GAMELOOP_ASM_ = 1
+    15                          
+    16                          
+    17                          ; -----------------------------------------------------------------------------
+    18                          ; loop to wait for vsync
+    19                          ; -----------------------------------------------------------------------------
+    20                          waitForVsync:
+    21  0ea8 cb                   !byte $CB  ; WAI instruction
+    22  0ea9 a530                 lda VSYNC_FLAG
+    23  0eab d0fb                 bne waitForVsync
+    24                          
+    25                            ; flow on through to the.... 
+    26                          
+    27                          ; -----------------------------------------------------------------------------
+    28                          ; main game loop
+    29                          ; -----------------------------------------------------------------------------
+    30                          gameLoop:
+    31                          
+    32  0ead c636                 dec ZP_ANIM_INDEX
+    33  0eaf d003                 bne +
+    34  0eb1 20ba0e               jsr updateFrame
+    35                          +
+    36                          
+    37  0eb4 a901                 lda #1
+    38  0eb6 8530                 sta VSYNC_FLAG
+    39                          
+    40  0eb8 80ee               	bra waitForVsync
+    41                          
+    42                          updateFrame:
+    43                          
+    44  0eba a640                 ldx ZP_QUEUE_X_INDEX
+    45  0ebc 20f908               jsr qSize
+    46  0ebf 48                   pha
+    47  0ec0 200409               jsr qIterate
+    48  0ec3 fa                   plx  ; here, x i size, y is starting offset, a is queue msb
+    49                          
+    50  0ec4 b141                 lda (ZP_QUEUE_X), y
+    51  0ec6 8530                 sta ZP_CURRENT_CELL_X
+    52  0ec8 b144                 lda (ZP_QUEUE_Y), y
+    53  0eca 8531                 sta ZP_CURRENT_CELL_Y
+    54  0ecc 202f0d               jsr setCellVram
+    55  0ecf a914                 +ldaTileId tileBlank
+    56  0ed1 204e0d               jsr outputTile
+    57  0ed4 c8                   iny
+    58  0ed5 ca                   dex
+    59                          
+    60  0ed6 b141                 lda (ZP_QUEUE_X), y
+    61  0ed8 8530                 sta ZP_CURRENT_CELL_X
+    62  0eda b144                 lda (ZP_QUEUE_Y), y
+    63  0edc 8531                 sta ZP_CURRENT_CELL_Y
+    64  0ede 202f0d               jsr setCellVram
+    65  0ee1 b147                 lda (ZP_QUEUE_D), y
+    66  0ee3 2903                 and #$03  ; tail
+    67  0ee5 0910                 ora #$10
+    68  0ee7 204e0d               jsr outputTile
+    69  0eea c8                   iny
+    70  0eeb ca                   dex
+    71                          
+    72                          
+    73                          --
+    74  0eec b141                 lda (ZP_QUEUE_X), y
+    75  0eee 8530                 sta ZP_CURRENT_CELL_X
+    76  0ef0 b144                 lda (ZP_QUEUE_Y), y
+    77  0ef2 8531                 sta ZP_CURRENT_CELL_Y
+    78  0ef4 202f0d               jsr setCellVram
+    79  0ef7 b147                 lda (ZP_QUEUE_D), y
+    80  0ef9 e001                 cpx #1   
+    81  0efb d002                 bne +
+    82  0efd 4908                 eor #$08  ; head
+    83                          +
+    84  0eff 204e0d               jsr outputTile
+    85                          
+    86  0f02 c8                   iny
+    87  0f03 ca                   dex
+    88  0f04 d0e6                 bne --  
+    89                          
+    90                          
+    91  0f06 a64020e308           +qPop ZP_QUEUE_X_INDEX
+    92  0f0b a64320e308           +qPop ZP_QUEUE_Y_INDEX
+    93  0f10 a64620e308           +qPop ZP_QUEUE_D_INDEX
+    94                          
+    95  0f15 e634                 inc ZP_HEAD_CELL_X
+    96  0f17 a534                 lda ZP_HEAD_CELL_X
+    97  0f19 a64020ca08           +qPush ZP_QUEUE_X_INDEX
+    98                          
+    99  0f1e a535                 lda ZP_HEAD_CELL_Y
+   100  0f20 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
+   101                          
+   102  0f25 a90f                 lda #DIR_RIGHT << 2 | DIR_RIGHT
+   103  0f27 a64620ca08           +qPush ZP_QUEUE_D_INDEX
+   104                          
+   105  0f2c a908                 lda #8
+   106  0f2e 8536                 sta ZP_ANIM_INDEX
+   107                          
+   108  0f30 60                   rts
+
+; ******** Source: src\snake.asm
+    69                          

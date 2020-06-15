@@ -36,8 +36,31 @@ ZP_CURRENT_CELL_Y        = $31
 
 ZP_CURRENT_PALETTE       = $32
 
+ZP_CURRENT_DIRECTION     = $33
+
+ZP_HEAD_CELL_X           = $34
+ZP_HEAD_CELL_Y           = $35
+
+ZP_ANIM_INDEX            = $36
+
+ZP_QUEUE_X_INDEX         = $40
+ZP_QUEUE_X               = $41
+ZP_QUEUE_X_LSB           = ZP_QUEUE_X
+ZP_QUEUE_X_MSB           = ZP_QUEUE_X + 1
+
+ZP_QUEUE_Y_INDEX         = $43
+ZP_QUEUE_Y               = $44
+ZP_QUEUE_Y_LSB           = ZP_QUEUE_Y
+ZP_QUEUE_Y_MSB           = ZP_QUEUE_Y + 1
+
+ZP_QUEUE_D_INDEX         = $46
+ZP_QUEUE_D               = $47
+ZP_QUEUE_D_LSB           = ZP_QUEUE_D
+ZP_QUEUE_D_MSB           = ZP_QUEUE_D + 1
+
+
 ;
-; $33 - $7f unused
+; $35 - $7f unused
 ;
 
 ; -----------------------------------------------------------------------------

@@ -37,9 +37,9 @@ TILE_FLIP_H = $04
 TILE_FLIP_V = $08
 
 
-!macro ldaTileId tileAddress { lda #(tileAddress - tileTable) >> 1 }
-!macro cmpTileId tileAddress { cmp #(tileAddress - tileTable) >> 1 }
-!macro byteTileId tileAddress { !byte (tileAddress - tileTable) >> 1 }
+!macro ldaTileId tileAddress { lda #(tileAddress - tileTable) >> 3 }
+!macro cmpTileId tileAddress { cmp #(tileAddress - tileTable) >> 3 }
+!macro byteTileId tileAddress { !byte (tileAddress - tileTable) >> 3 }
 
 ; -----------------------------------------------------------------------------
 ; load the tiles from disk into vram
@@ -48,46 +48,66 @@ loadTiles:
   +setRamBank RAM_BANK_SCRATCH
   +vLoadPcx snakePcx,  SNAKE_ADDR, SNAKE_PAL_ODD
   +vLoadPcx snakePcx,  SNAKE_ADDR, SNAKE_PAL_EVEN
+  
+  +vset VERA_PALETTE + (SNAKE_PAL_EVEN << 5) + 30
+  lda #$d3
+  sta VERA_DATA0
+  lda #$08
+  sta VERA_DATA0
 
   +vset VRADDR_MAP_BASE
 
-  stz ZP_CURRENT_CELL_X
-  stz ZP_CURRENT_CELL_Y
+  ldy #31
+--
+  ldx #63
+-
+  stx ZP_CURRENT_CELL_X
+  sty ZP_CURRENT_CELL_Y
   jsr setCellVram
+  +ldaTileId tileBlank
+  jsr outputTile
+  dex
+  bpl -
+  dey
+  bpl --
+
+  stz ZP_QUEUE_X_LSB
+  +qCreate ZP_QUEUE_X_INDEX, ZP_QUEUE_X_MSB
+  stz ZP_QUEUE_Y_LSB
+  +qCreate ZP_QUEUE_Y_INDEX, ZP_QUEUE_Y_MSB
+  stz ZP_QUEUE_D_LSB
+  +qCreate ZP_QUEUE_D_INDEX, ZP_QUEUE_D_MSB
+
   lda #0
-  jsr outputTile
+  +qPush ZP_QUEUE_X_INDEX
+  inc
+  +qPush ZP_QUEUE_X_INDEX
+  inc
+  +qPush ZP_QUEUE_X_INDEX
+  inc
+  +qPush ZP_QUEUE_X_INDEX
+  sta ZP_HEAD_CELL_X
 
-  inc ZP_CURRENT_CELL_Y
-  jsr setCellVram
+  lda #7
+  +qPush ZP_QUEUE_Y_INDEX
+  +qPush ZP_QUEUE_Y_INDEX
+  +qPush ZP_QUEUE_Y_INDEX
+  +qPush ZP_QUEUE_Y_INDEX
+  sta ZP_HEAD_CELL_Y
+
+  lda #DIR_RIGHT << 2 | DIR_RIGHT
+  +ldaTileId tileBodyRight
+  +qPush ZP_QUEUE_D_INDEX
+  +qPush ZP_QUEUE_D_INDEX
+  +qPush ZP_QUEUE_D_INDEX
+  +qPush ZP_QUEUE_D_INDEX
+
+
+  lda #DIR_RIGHT
+  sta ZP_CURRENT_DIRECTION
+
   lda #1
-  jsr outputTile
-
-  inc ZP_CURRENT_CELL_Y
-  jsr setCellVram
-  lda #2
-  jsr outputTile
-
-
-  inc ZP_CURRENT_CELL_Y
-  jsr setCellVram
-  lda #3
-  jsr outputTile
-
-  inc ZP_CURRENT_CELL_X
-  jsr setCellVram
-  lda #4
-  jsr outputTile
-
-  inc ZP_CURRENT_CELL_Y
-  jsr setCellVram
-  lda #5
-  jsr outputTile
-
-  inc ZP_CURRENT_CELL_X
-  jsr setCellVram
-  lda #6
-  jsr outputTile
-
+  sta ZP_ANIM_INDEX
 
   rts
 
@@ -118,8 +138,6 @@ setCellVram:
 
 
 !macro outputTile startOffset {
-
-
   lda startOffset, y
   sta VERA_DATA0  
   lda startOffset + 1, y  
@@ -147,6 +165,10 @@ setCellVram:
 }
 
 
+DIR_UP    = $0
+DIR_LEFT  = $1
+DIR_DOWN  = $2
+DIR_RIGHT = $3
 
 
 ; -----------------------------------------------------------------------------
@@ -159,6 +181,7 @@ setCellVram:
 ;  VERA address already set
 ; -----------------------------------------------------------------------------
 outputTile:
+  phy
   asl ; 2x
   asl ; 4x
   asl ; 8x
@@ -167,10 +190,12 @@ outputTile:
   bcc .firstHalf
 
   +outputTile tileTable + $100
+  ply
   rts
 
 .firstHalf:
   +outputTile tileTable
+  ply
   rts
 ; -----------------------------------------------------------------------------
 
@@ -201,87 +226,87 @@ outputTile:
 
 !align 255,0
 tileTable:
-tileBlank:        +tileDef   0, SNAKE_ADDR, 6,  SNAKE_PAL, 0
-                  +tileDef   0, SNAKE_ADDR, 6,  SNAKE_PAL, 0
-                  +tileDef   0, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
-                  +tileDef   0, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
-tileHeadUp:       +tileDef   1, SNAKE_ADDR, 0,  SNAKE_PAL, 0
-                  +tileDef   1, SNAKE_ADDR, 16, SNAKE_PAL, 0
-                  +tileDef   1, SNAKE_ADDR, 1,  SNAKE_PAL, 0                  
-                  +tileDef   1, SNAKE_ADDR, 17, SNAKE_PAL, 0                  
-tileHeadLeft:     +tileDef   2, SNAKE_ADDR, 29, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   2, SNAKE_ADDR, 13, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   2, SNAKE_ADDR, 28, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   2, SNAKE_ADDR, 12, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-tileHeadDown:     +tileDef   3, SNAKE_ADDR, 17, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   3, SNAKE_ADDR, 1,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   3, SNAKE_ADDR, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   3, SNAKE_ADDR, 0,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-tileHeadRight     +tileDef   4, SNAKE_ADDR, 12, SNAKE_PAL, 0
-                  +tileDef   4, SNAKE_ADDR, 28, SNAKE_PAL, 0
-                  +tileDef   4, SNAKE_ADDR, 13, SNAKE_PAL, 0
-                  +tileDef   4, SNAKE_ADDR, 29, SNAKE_PAL, 0
-tileBodyUp:       +tileDef   5, SNAKE_ADDR, 2,  SNAKE_PAL, 0
-                  +tileDef   5, SNAKE_ADDR, 18, SNAKE_PAL, 0
-                  +tileDef   5, SNAKE_ADDR, 2,  SNAKE_PAL, 0                  
-                  +tileDef   5, SNAKE_ADDR, 18, SNAKE_PAL, 0                  
-tileBodyLeft      +tileDef   6, SNAKE_ADDR, 19, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   6, SNAKE_ADDR, 19, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   6, SNAKE_ADDR, 3,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   6, SNAKE_ADDR, 3,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-tileBodyDown:     +tileDef   7, SNAKE_ADDR, 18, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   7, SNAKE_ADDR, 2,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   7, SNAKE_ADDR, 18, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   7, SNAKE_ADDR, 2,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-tileBodyRight     +tileDef   8, SNAKE_ADDR, 3,  SNAKE_PAL, 0
-                  +tileDef   8, SNAKE_ADDR, 3,  SNAKE_PAL, 0
-                  +tileDef   8, SNAKE_ADDR, 19, SNAKE_PAL, 0
-                  +tileDef   8, SNAKE_ADDR, 19, SNAKE_PAL, 0
-tileTailUp:       +tileDef   9, SNAKE_ADDR, 4,  SNAKE_PAL, 0
-                  +tileDef   9, SNAKE_ADDR, 20, SNAKE_PAL, 0
-                  +tileDef   9, SNAKE_ADDR, 5,  SNAKE_PAL, 0                  
-                  +tileDef   9, SNAKE_ADDR, 21, SNAKE_PAL, 0                  
-tileTailLeft      +tileDef   10, SNAKE_ADDR, 31, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   10, SNAKE_ADDR, 15, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   10, SNAKE_ADDR, 30, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   10, SNAKE_ADDR, 14, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-tileTailDown:     +tileDef   11, SNAKE_ADDR, 21, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   11, SNAKE_ADDR, 5,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   11, SNAKE_ADDR, 20, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   11, SNAKE_ADDR, 4,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-tileTailRight     +tileDef   12, SNAKE_ADDR, 14, SNAKE_PAL, 0
-                  +tileDef   12, SNAKE_ADDR, 30, SNAKE_PAL, 0
-                  +tileDef   12, SNAKE_ADDR, 15, SNAKE_PAL, 0
-                  +tileDef   12, SNAKE_ADDR, 31, SNAKE_PAL, 0
-tileBodyUpLeft:   +tileDef   13, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   13, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   13, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   13, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-tileBodyLeftDown: +tileDef   14, SNAKE_ADDR, 8,  SNAKE_PAL, 0
-                  +tileDef   14, SNAKE_ADDR, 24, SNAKE_PAL, 0
-                  +tileDef   14, SNAKE_ADDR, 9,  SNAKE_PAL, 0
-                  +tileDef   14, SNAKE_ADDR, 25, SNAKE_PAL, 0
-tileBodyDownRight:+tileDef   15, SNAKE_ADDR, 10, SNAKE_PAL, 0
-                  +tileDef   15, SNAKE_ADDR, 26, SNAKE_PAL, 0
-                  +tileDef   15, SNAKE_ADDR, 11, SNAKE_PAL, 0
-                  +tileDef   15, SNAKE_ADDR, 27, SNAKE_PAL, 0
-tileBodyRightUp:  +tileDef   16, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   16, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   16, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-                  +tileDef   16, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-tileBodyLeftUp:   +tileDef   17, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_V
-                  +tileDef   17, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_V
-                  +tileDef   17, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_V
-                  +tileDef   17, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_V
-tileBodyDownLeft: +tileDef   18, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_H
-                  +tileDef   18, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_H
-                  +tileDef   18, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_H
-                  +tileDef   18, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_H
-tileBodyRightDown:+tileDef   19, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_H
-                  +tileDef   19, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_H
-                  +tileDef   19, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_H
-                  +tileDef   19, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_H
-tileBodyUpRight:  +tileDef   20, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_V
-                  +tileDef   20, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_V
-                  +tileDef   20, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_V
-                  +tileDef   20, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_V
+tileBodyUp:       +tileDef    0, SNAKE_ADDR, 2,  SNAKE_PAL, 0
+                  +tileDef    0, SNAKE_ADDR, 18, SNAKE_PAL, 0
+                  +tileDef    0, SNAKE_ADDR, 2,  SNAKE_PAL, 0                  
+                  +tileDef    0, SNAKE_ADDR, 18, SNAKE_PAL, 0                  
+tileBodyUpLeft:   +tileDef    1, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef    1, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef    1, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef    1, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+tileHeadDown:     +tileDef    2, SNAKE_ADDR, 17, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef    2, SNAKE_ADDR, 1,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef    2, SNAKE_ADDR, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef    2, SNAKE_ADDR, 0,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+tileBodyUpRight:  +tileDef    3, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_V
+                  +tileDef    3, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_V
+                  +tileDef    3, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_V
+                  +tileDef    3, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_V
+tileBodyLeftUp:   +tileDef    4, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_V
+                  +tileDef    4, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_V
+                  +tileDef    4, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_V
+                  +tileDef    4, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_V
+tileBodyLeft      +tileDef    5, SNAKE_ADDR, 19, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef    5, SNAKE_ADDR, 19, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef    5, SNAKE_ADDR, 3,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef    5, SNAKE_ADDR, 3,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+tileBodyLeftDown: +tileDef    6, SNAKE_ADDR, 8,  SNAKE_PAL, 0
+                  +tileDef    6, SNAKE_ADDR, 24, SNAKE_PAL, 0
+                  +tileDef    6, SNAKE_ADDR, 9,  SNAKE_PAL, 0
+                  +tileDef    6, SNAKE_ADDR, 25, SNAKE_PAL, 0
+tileHeadRight     +tileDef    7, SNAKE_ADDR, 12, SNAKE_PAL, 0
+                  +tileDef    7, SNAKE_ADDR, 28, SNAKE_PAL, 0
+                  +tileDef    7, SNAKE_ADDR, 13, SNAKE_PAL, 0
+                  +tileDef    7, SNAKE_ADDR, 29, SNAKE_PAL, 0
+tileHeadUp:       +tileDef    8, SNAKE_ADDR, 0,  SNAKE_PAL, 0
+                  +tileDef    8, SNAKE_ADDR, 16, SNAKE_PAL, 0
+                  +tileDef    8, SNAKE_ADDR, 1,  SNAKE_PAL, 0                  
+                  +tileDef    8, SNAKE_ADDR, 17, SNAKE_PAL, 0                  
+tileBodyDownLeft: +tileDef    9, SNAKE_ADDR, 26, SNAKE_PAL, TILE_FLIP_H
+                  +tileDef    9, SNAKE_ADDR, 10, SNAKE_PAL, TILE_FLIP_H
+                  +tileDef    9, SNAKE_ADDR, 27, SNAKE_PAL, TILE_FLIP_H
+                  +tileDef    9, SNAKE_ADDR, 11, SNAKE_PAL, TILE_FLIP_H
+tileBodyDown:     +tileDef   10, SNAKE_ADDR, 18, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   10, SNAKE_ADDR, 2,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   10, SNAKE_ADDR, 18, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   10, SNAKE_ADDR, 2,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+tileBodyDownRight:+tileDef   11, SNAKE_ADDR, 10, SNAKE_PAL, 0
+                  +tileDef   11, SNAKE_ADDR, 26, SNAKE_PAL, 0
+                  +tileDef   11, SNAKE_ADDR, 11, SNAKE_PAL, 0
+                  +tileDef   11, SNAKE_ADDR, 27, SNAKE_PAL, 0
+tileBodyRightUp:  +tileDef   12, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   12, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   12, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   12, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+tileHeadLeft:     +tileDef   13, SNAKE_ADDR, 29, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   13, SNAKE_ADDR, 13, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   13, SNAKE_ADDR, 28, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   13, SNAKE_ADDR, 12, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+tileBodyRightDown:+tileDef   14, SNAKE_ADDR, 24, SNAKE_PAL, TILE_FLIP_H
+                  +tileDef   14, SNAKE_ADDR, 8,  SNAKE_PAL, TILE_FLIP_H
+                  +tileDef   14, SNAKE_ADDR, 25, SNAKE_PAL, TILE_FLIP_H
+                  +tileDef   14, SNAKE_ADDR, 9,  SNAKE_PAL, TILE_FLIP_H
+tileBodyRight     +tileDef   15, SNAKE_ADDR, 3,  SNAKE_PAL, 0
+                  +tileDef   15, SNAKE_ADDR, 3,  SNAKE_PAL, 0
+                  +tileDef   15, SNAKE_ADDR, 19, SNAKE_PAL, 0
+                  +tileDef   15, SNAKE_ADDR, 19, SNAKE_PAL, 0
+tileTailLeft      +tileDef   17, SNAKE_ADDR, 31, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   17, SNAKE_ADDR, 15, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   17, SNAKE_ADDR, 30, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   17, SNAKE_ADDR, 14, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+tileTailUp:       +tileDef   16, SNAKE_ADDR, 4,  SNAKE_PAL, 0
+                  +tileDef   16, SNAKE_ADDR, 20, SNAKE_PAL, 0
+                  +tileDef   16, SNAKE_ADDR, 5,  SNAKE_PAL, 0                  
+                  +tileDef   16, SNAKE_ADDR, 21, SNAKE_PAL, 0                  
+tileTailDown:     +tileDef   18, SNAKE_ADDR, 21, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   18, SNAKE_ADDR, 5,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   18, SNAKE_ADDR, 20, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+                  +tileDef   18, SNAKE_ADDR, 4,  SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+tileTailRight:    +tileDef   19, SNAKE_ADDR, 14, SNAKE_PAL, 0
+                  +tileDef   19, SNAKE_ADDR, 30, SNAKE_PAL, 0
+                  +tileDef   19, SNAKE_ADDR, 15, SNAKE_PAL, 0
+                  +tileDef   19, SNAKE_ADDR, 31, SNAKE_PAL, 0
+tileBlank:        +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0
+                  +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0
+                  +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
+                  +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
