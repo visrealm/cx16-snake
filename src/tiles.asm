@@ -324,10 +324,19 @@ tileTailRight:    +tileDef   19, SNAKE_ADDR, 14, SNAKE_PAL, 0
                   +tileDef   19, SNAKE_ADDR, 30, SNAKE_PAL, 0
                   +tileDef   19, SNAKE_ADDR, 15, SNAKE_PAL, 0
                   +tileDef   19, SNAKE_ADDR, 31, SNAKE_PAL, 0
+tileHeadUpLeft:   +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0
+                  +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0
+                  +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
+                  +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0
+
+
 tileBlank:        +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0
                   +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0
                   +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
-                  +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0                  
+                  +tileDef   20, SNAKE_ADDR, 6,  SNAKE_PAL, 0
+
+
+
 tileApple:        +tileDef   21, APPLE_ADDR, 0,  APPLE_PAL, 0
                   +tileDef   21, APPLE_ADDR, 2,  APPLE_PAL, 0
                   +tileDef   21, APPLE_ADDR, 1,  APPLE_PAL, 0                  
