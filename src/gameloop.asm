@@ -199,7 +199,10 @@ updateFrame:
   lda ZP_APPLE_CELL_Y
   sta ZP_CURRENT_CELL_Y
   jsr setCellVram
-  +ldaTileId tileApple
+  lda ZP_FRAME_INDEX
+  and #7
+  clc
+  adc #1
   jsr outputTile
 
   ldx ZP_QUEUE_X_INDEX
@@ -238,7 +241,7 @@ doStep0:
   lda (ZP_QUEUE_Y), y
   sta ZP_CURRENT_CELL_Y
   jsr setCellVram
-  lda #0
+  +ldaTileId tileBlank
   jsr outputTile
   iny
   dex
@@ -297,7 +300,7 @@ doStep1:
   lda (ZP_QUEUE_Y), y
   sta ZP_CURRENT_CELL_Y
   jsr setCellVram
-  lda #0
+  +ldaTileId tileBlank
   jsr outputTile
   iny
   dex

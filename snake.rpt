@@ -213,7 +213,7 @@
     42  0820 58                   cli
     43                          
     44                            ; enter the game loop
-    45  0821 4c8012               jmp waitForVsync
+    45  0821 4c8014               jmp waitForVsync
     46                          
     47  0824 60                   rts
     48                          
@@ -2225,7 +2225,7 @@
     77  0d3e 8630                 stx ZP_CURRENT_CELL_X
     78  0d40 8431                 sty ZP_CURRENT_CELL_Y
     79  0d42 20c70d               jsr setCellVram
-    80  0d45 a900                 +ldaTileId tileBlank
+    80  0d45 a960                 +ldaTileId tileBlank
     81  0d47 20e60d               jsr outputTile
     82  0d4a ca                   dex
     83  0d4b 10f1                 bpl -
@@ -2351,320 +2351,328 @@
    203  0de6 5a                   phy
    204  0de7 0a                   asl ; 2x
    205  0de8 0a                   asl ; 4x
-   206  0de9 9045                 bcc .firstHalf
+   206  0de9 9047                 bcc .doFirstHalf
    207  0deb 0a                   asl ; 8x
    208  0dec a8                   tay
-   209                          ; 512+
-   210  0ded b900118d239fb901...  +outputTile tileTable + $200
-   211  0e2e 7a                   ply
-   212  0e2f 60                   rts
+   209  0ded 9045                 bcc .thirdQuarter
+   210  0def b900138d239fb901...  +outputTile tileTable + $300
+   211  0e30 7a                   ply
+   212  0e31 60                   rts
    213                          
-   214                          .firstHalf:
-   215  0e30 0a                   asl ; 8x
-   216  0e31 a8                   tay
-   217  0e32 9043                 bcc .firstQuarter
-   218  0e34 b900108d239fb901...  +outputTile tileTable + $100
+   214                          .doFirstHalf:
+   215  0e32 8043                 bra .firstHalf
+   216                          
+   217                          .thirdQuarter
+   218  0e34 b900128d239fb901...  +outputTile tileTable + $200
    219  0e75 7a                   ply
    220  0e76 60                   rts
    221                          
-   222                          .firstQuarter
-   223  0e77 b9000f8d239fb901...  +outputTile tileTable
-   224  0eb8 7a                   ply
-   225  0eb9 60                   rts
-   226                          ; -----------------------------------------------------------------------------
-   227                          
-   228                          
-   229                          ; -----------------------------------------------------------------------------
-   230                          ; tile definitions (32 x 32 tiles built from 16 x 16 bitmaps)
-   231                          ; -----------------------------------------------------------------------------
-   232                          ; 8 bytes per tile in the VERA tile format:
-   233                          ;
-   234                          ; Offset	Bit 7	Bit 6	Bit 5	Bit 4	Bit 3	Bit 2	Bit 1	Bit 0
-   235                          ; 0	        [ Tile index (7:0)                                            ]
-   236                          ; 1	        [ Palette offset              ][V-flip][H-flip][Tile index 9:8]
-   237                          ;
-   238                          ; -----------------------------------------------------------------------------
-   239                          !macro tileDef index, tilesetAddr, tileOffsetUL, tileOffsetUR, tileOffsetBL, tileOffsetBR, tilePalette, tileFlags {
-   240                              
-   241                              .tilesetOffset = (tilesetAddr - VRADDR_TILE_BASE) / TILE_SIZE_BYTES
-   242                          
-   243                              ; tile offset
-   244                              .tileOffsetUL    = .tilesetOffset + tileOffsetUL
-   245                              .tileOffsetUR    = .tilesetOffset + tileOffsetUR
-   246                              .tileOffsetBL    = .tilesetOffset + tileOffsetBL
-   247                              .tileOffsetBR    = .tilesetOffset + tileOffsetBR
-   248                          
-   249                              ; tile index (7:0)
-   250                              !byte .tileOffsetUL & $ff
-   251                              ; palette offset (7:4), flags, tile offset (9:8)
-   252                              !byte (tilePalette << 4) | tileFlags | (.tileOffsetUL >> 8)
-   253                          
-   254                              !byte .tileOffsetUR & $ff
-   255                              !byte (tilePalette << 4) | tileFlags | (.tileOffsetUR >> 8)
-   256                              !byte .tileOffsetBL & $ff
-   257                              !byte (tilePalette << 4) | tileFlags | (.tileOffsetBL >> 8)
-   258                              !byte .tileOffsetBR & $ff
-   259                              !byte (tilePalette << 4) | tileFlags | (.tileOffsetBR >> 8)
-   260                          }
+   222                          .firstHalf:
+   223  0e77 0a                   asl ; 8x
+   224  0e78 a8                   tay
+   225  0e79 9043                 bcc .firstQuarter
+   226  0e7b b900118d239fb901...  +outputTile tileTable + $100
+   227  0ebc 7a                   ply
+   228  0ebd 60                   rts
+   229                          
+   230                          .firstQuarter
+   231  0ebe b900108d239fb901...  +outputTile tileTable
+   232  0eff 7a                   ply
+   233  0f00 60                   rts
+   234                          ; -----------------------------------------------------------------------------
+   235                          
+   236                          
+   237                          ; -----------------------------------------------------------------------------
+   238                          ; tile definitions (32 x 32 tiles built from 16 x 16 bitmaps)
+   239                          ; -----------------------------------------------------------------------------
+   240                          ; 8 bytes per tile in the VERA tile format:
+   241                          ;
+   242                          ; Offset	Bit 7	Bit 6	Bit 5	Bit 4	Bit 3	Bit 2	Bit 1	Bit 0
+   243                          ; 0	        [ Tile index (7:0)                                            ]
+   244                          ; 1	        [ Palette offset              ][V-flip][H-flip][Tile index 9:8]
+   245                          ;
+   246                          ; -----------------------------------------------------------------------------
+   247                          !macro tileDef index, tilesetAddr, tileOffsetUL, tileOffsetUR, tileOffsetBL, tileOffsetBR, tilePalette, tileFlags {
+   248                              
+   249                              .tilesetOffset = (tilesetAddr - VRADDR_TILE_BASE) / TILE_SIZE_BYTES
+   250                          
+   251                              ; tile offset
+   252                              .tileOffsetUL    = .tilesetOffset + tileOffsetUL
+   253                              .tileOffsetUR    = .tilesetOffset + tileOffsetUR
+   254                              .tileOffsetBL    = .tilesetOffset + tileOffsetBL
+   255                              .tileOffsetBR    = .tilesetOffset + tileOffsetBR
+   256                          
+   257                              ; tile index (7:0)
+   258                              !byte .tileOffsetUL & $ff
+   259                              ; palette offset (7:4), flags, tile offset (9:8)
+   260                              !byte (tilePalette << 4) | tileFlags | (.tileOffsetUL >> 8)
    261                          
-   262  0eba eaeaeaeaeaeaeaea...!align 255,0
-   263                          tileTable:
-   264  0f00 1020102010201020   tileBlank:  +tileDef  0, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
-   265  0f08 6040624061406340   tileApple:  +tileDef  1, APPLE_ADDR, 0,  2,  1,  3,  APPLE_PAL, 0              
-   266                          
-   267  0f10 1020102010201020   +tileDef  2, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
-   268  0f18 1020102010201020   +tileDef  3, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
-   269  0f20 1020102010201020   +tileDef  4, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
-   270  0f28 1020102010201020   +tileDef  5, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
-   271  0f30 1020102010201020   +tileDef  6, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
-   272  0f38 1020102010201020   +tileDef  7, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
-   273                          
-   274  0f40 3420352036203720   +tileDef  8, SNAKE_ADDR, 52, 53, 54, 55, SNAKE_PAL, 0
-   275  0f48 3620372034203520   +tileDef  9, SNAKE_ADDR, 54, 55, 52, 53, SNAKE_PAL, 0
-   276  0f50 4e284f284c284d28   +tileDef  10, SNAKE_ADDR, 78, 79, 76, 77, SNAKE_PAL, TILE_FLIP_V
-   277  0f58 1c201d201e201f20   +tileDef  11, SNAKE_ADDR, 28, 29, 30, 31, SNAKE_PAL, 0
-   278  0f60 4f2c4e2c4d2c4c2c   +tileDef  12, SNAKE_ADDR, 79, 78, 77, 76, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   279  0f68 1d241c241f241e24   +tileDef  13, SNAKE_ADDR, 29, 28, 31, 30, SNAKE_PAL, TILE_FLIP_H
-   280  0f70 0420052006200720   +tileDef  14, SNAKE_ADDR, 4, 5, 6, 7, SNAKE_PAL, 0
-   281  0f78 0520042007200620   +tileDef  15, SNAKE_ADDR, 5, 4, 7, 6, SNAKE_PAL, 0
-   282  0f80 1f2c1e2c1d2c1c2c   +tileDef  16, SNAKE_ADDR, 31, 30, 29, 28, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   283  0f88 4d244c244f244e24   +tileDef  17, SNAKE_ADDR, 77, 76, 79, 78, SNAKE_PAL, TILE_FLIP_H
-   284  0f90 1d241c241f241e24   +tileDef  18, SNAKE_ADDR, 29, 28, 31, 30, SNAKE_PAL, TILE_FLIP_H
-   285  0f98 4f2c4e2c4d2c4c2c   +tileDef  19, SNAKE_ADDR, 79, 78, 77, 76, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   286  0fa0 072c062c052c042c   +tileDef  20, SNAKE_ADDR, 7, 6, 5, 4, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   287  0fa8 0520042007200620   +tileDef  21, SNAKE_ADDR, 5, 4, 7, 6, SNAKE_PAL, 0
-   288  0fb0 1e281f281c281d28   +tileDef  22, SNAKE_ADDR, 30, 31, 28, 29, SNAKE_PAL, TILE_FLIP_V
-   289  0fb8 4c204d204e204f20   +tileDef  23, SNAKE_ADDR, 76, 77, 78, 79, SNAKE_PAL, 0
-   290  0fc0 1c201d201e201f20   +tileDef  24, SNAKE_ADDR, 28, 29, 30, 31, SNAKE_PAL, 0
-   291  0fc8 4e284f284c284d28   +tileDef  25, SNAKE_ADDR, 78, 79, 76, 77, SNAKE_PAL, TILE_FLIP_V
-   292  0fd0 372c362c352c342c   +tileDef  26, SNAKE_ADDR, 55, 54, 53, 52, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   293  0fd8 3620372034203520   +tileDef  27, SNAKE_ADDR, 54, 55, 52, 53, SNAKE_PAL, 0
-   294  0fe0 4c204d204e204f20   +tileDef  28, SNAKE_ADDR, 76, 77, 78, 79, SNAKE_PAL, 0
-   295  0fe8 1e281f281c281d28   +tileDef  29, SNAKE_ADDR, 30, 31, 28, 29, SNAKE_PAL, TILE_FLIP_V
-   296  0ff0 4d244c244f244e24   +tileDef  30, SNAKE_ADDR, 77, 76, 79, 78, SNAKE_PAL, TILE_FLIP_H
-   297  0ff8 1f2c1e2c1d2c1c2c   +tileDef  31, SNAKE_ADDR, 31, 30, 29, 28, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   298                          
-   299  1000 3620372030203120   +tileDef  32, SNAKE_ADDR, 54, 55, 48, 49, SNAKE_PAL, 0
-   300  1008 3020312032203320   +tileDef  33, SNAKE_ADDR, 48, 49, 50, 51, SNAKE_PAL, 0
-   301  1010 1628172814281528   +tileDef  34, SNAKE_ADDR, 22, 23, 20, 21, SNAKE_PAL, TILE_FLIP_V
-   302  1018 0e280f280c280d28   +tileDef  35, SNAKE_ADDR, 14, 15, 12, 13, SNAKE_PAL, TILE_FLIP_V
-   303  1020 172c162c152c142c   +tileDef  36, SNAKE_ADDR, 23, 22, 21, 20, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   304  1028 0f2c0e2c0d2c0c2c   +tileDef  37, SNAKE_ADDR, 15, 14, 13, 12, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   305  1030 0120042003200620   +tileDef  38, SNAKE_ADDR, 1, 4, 3, 6, SNAKE_PAL, 0
-   306  1038 0020012002200320   +tileDef  39, SNAKE_ADDR, 0, 1, 2, 3, SNAKE_PAL, 0
-   307  1040 4420452046204720   +tileDef  40, SNAKE_ADDR, 68, 69, 70, 71, SNAKE_PAL, 0
-   308  1048 3c203d203e203f20   +tileDef  41, SNAKE_ADDR, 60, 61, 62, 63, SNAKE_PAL, 0
-   309  1050 4628472844284528   +tileDef  42, SNAKE_ADDR, 70, 71, 68, 69, SNAKE_PAL, TILE_FLIP_V
-   310  1058 3e283f283c283d28   +tileDef  43, SNAKE_ADDR, 62, 63, 60, 61, SNAKE_PAL, TILE_FLIP_V
-   311  1060 072c032c052c012c   +tileDef  44, SNAKE_ADDR, 7, 3, 5, 1, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   312  1068 032c022c012c002c   +tileDef  45, SNAKE_ADDR, 3, 2, 1, 0, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   313  1070 4524442447244624   +tileDef  46, SNAKE_ADDR, 69, 68, 71, 70, SNAKE_PAL, TILE_FLIP_H
-   314  1078 3d243c243f243e24   +tileDef  47, SNAKE_ADDR, 61, 60, 63, 62, SNAKE_PAL, TILE_FLIP_H
-   315  1080 472c462c452c442c   +tileDef  48, SNAKE_ADDR, 71, 70, 69, 68, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   316  1088 3f2c3e2c3d2c3c2c   +tileDef  49, SNAKE_ADDR, 63, 62, 61, 60, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   317  1090 312c302c352c342c   +tileDef  50, SNAKE_ADDR, 49, 48, 53, 52, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   318  1098 332c322c312c302c   +tileDef  51, SNAKE_ADDR, 51, 50, 49, 48, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   319  10a0 1420152016201720   +tileDef  52, SNAKE_ADDR, 20, 21, 22, 23, SNAKE_PAL, 0
-   320  10a8 0c200d200e200f20   +tileDef  53, SNAKE_ADDR, 12, 13, 14, 15, SNAKE_PAL, 0
-   321  10b0 1524142417241624   +tileDef  54, SNAKE_ADDR, 21, 20, 23, 22, SNAKE_PAL, TILE_FLIP_H
-   322  10b8 0d240c240f240e24   +tileDef  55, SNAKE_ADDR, 13, 12, 15, 14, SNAKE_PAL, TILE_FLIP_H
-   323  10c0 3220332010201020   +tileDef  56, SNAKE_ADDR, 50, 51, 16, 16, SNAKE_PAL, 0
-   324  10c8 1020002010200220   +tileDef  57, SNAKE_ADDR, 16, 0, 16, 2, SNAKE_PAL, 0
-   325  10d0 022c102c002c102c   +tileDef  58, SNAKE_ADDR, 2, 16, 0, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   326  10d8 102c102c332c322c   +tileDef  59, SNAKE_ADDR, 16, 16, 51, 50, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   327  10e0 382039203a203b20   +tileDef  60, SNAKE_ADDR, 56, 57, 58, 59, SNAKE_PAL, 0
-   328  10e8 3a203b2036203720   +tileDef  61, SNAKE_ADDR, 58, 59, 54, 55, SNAKE_PAL, 0
-   329  10f0 192418241b241a24   +tileDef  62, SNAKE_ADDR, 25, 24, 27, 26, SNAKE_PAL, TILE_FLIP_H
-   330  10f8 5628572854285528   +tileDef  63, SNAKE_ADDR, 86, 87, 84, 85, SNAKE_PAL, TILE_FLIP_V
-   331  1100 182019201a201b20   +tileDef  64, SNAKE_ADDR, 24, 25, 26, 27, SNAKE_PAL, 0
-   332  1108 572c562c552c542c   +tileDef  65, SNAKE_ADDR, 87, 86, 85, 84, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   333  1110 082009200a200b20   +tileDef  66, SNAKE_ADDR, 8, 9, 10, 11, SNAKE_PAL, 0
-   334  1118 0520082007200a20   +tileDef  67, SNAKE_ADDR, 5, 8, 7, 10, SNAKE_PAL, 0
-   335  1120 4b2c4a2c492c482c   +tileDef  68, SNAKE_ADDR, 75, 74, 73, 72, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   336  1128 272c262c252c242c   +tileDef  69, SNAKE_ADDR, 39, 38, 37, 36, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   337  1130 492448244b244a24   +tileDef  70, SNAKE_ADDR, 73, 72, 75, 74, SNAKE_PAL, TILE_FLIP_H
-   338  1138 2524242427242624   +tileDef  71, SNAKE_ADDR, 37, 36, 39, 38, SNAKE_PAL, TILE_FLIP_H
-   339  1140 0b2c0a2c092c082c   +tileDef  72, SNAKE_ADDR, 11, 10, 9, 8, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   340  1148 0a2c072c082c052c   +tileDef  73, SNAKE_ADDR, 10, 7, 8, 5, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   341  1150 4a284b2848284928   +tileDef  74, SNAKE_ADDR, 74, 75, 72, 73, SNAKE_PAL, TILE_FLIP_V
-   342  1158 2628272824282528   +tileDef  75, SNAKE_ADDR, 38, 39, 36, 37, SNAKE_PAL, TILE_FLIP_V
-   343  1160 482049204a204b20   +tileDef  76, SNAKE_ADDR, 72, 73, 74, 75, SNAKE_PAL, 0
-   344  1168 2420252026202720   +tileDef  77, SNAKE_ADDR, 36, 37, 38, 39, SNAKE_PAL, 0
-   345  1170 3b2c3a2c392c382c   +tileDef  78, SNAKE_ADDR, 59, 58, 57, 56, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   346  1178 372c362c3b2c3a2c   +tileDef  79, SNAKE_ADDR, 55, 54, 59, 58, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   347  1180 1b2c1a2c192c182c   +tileDef  80, SNAKE_ADDR, 27, 26, 25, 24, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   348  1188 5420552056205720   +tileDef  81, SNAKE_ADDR, 84, 85, 86, 87, SNAKE_PAL, 0
-   349  1190 1a281b2818281928   +tileDef  82, SNAKE_ADDR, 26, 27, 24, 25, SNAKE_PAL, TILE_FLIP_V
-   350  1198 5524542457245624   +tileDef  83, SNAKE_ADDR, 85, 84, 87, 86, SNAKE_PAL, TILE_FLIP_H
-   351  11a0 1020102038203920   +tileDef  84, SNAKE_ADDR, 16, 16, 56, 57, SNAKE_PAL, 0
-   352  11a8 2124202423242224   +tileDef  85, SNAKE_ADDR, 33, 32, 35, 34, SNAKE_PAL, TILE_FLIP_H
-   353  11b0 2020212022202320   +tileDef  86, SNAKE_ADDR, 32, 33, 34, 35, SNAKE_PAL, 0
-   354  11b8 092010200b201020   +tileDef  87, SNAKE_ADDR, 9, 16, 11, 16, SNAKE_PAL, 0
-   355  11c0 532c522c512c502c   +tileDef  88, SNAKE_ADDR, 83, 82, 81, 80, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   356  11c8 5124502453245224   +tileDef  89, SNAKE_ADDR, 81, 80, 83, 82, SNAKE_PAL, TILE_FLIP_H
-   357  11d0 102c0b2c102c092c   +tileDef  90, SNAKE_ADDR, 16, 11, 16, 9, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   358  11d8 5228532850285128   +tileDef  91, SNAKE_ADDR, 82, 83, 80, 81, SNAKE_PAL, TILE_FLIP_V
-   359  11e0 5020512052205320   +tileDef  92, SNAKE_ADDR, 80, 81, 82, 83, SNAKE_PAL, 0
-   360  11e8 392c382c102c102c   +tileDef  93, SNAKE_ADDR, 57, 56, 16, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   361  11f0 232c222c212c202c   +tileDef  94, SNAKE_ADDR, 35, 34, 33, 32, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   362  11f8 2228232820282128   +tileDef  95, SNAKE_ADDR, 34, 35, 32, 33, SNAKE_PAL, TILE_FLIP_V
-   363                          
-   364                          
-   365                          ; Map snake segments to tile ids
-   366                          ;
-   367                          ; Snake segment ids consist of the segment type, from direction and to direction
-   368                          ; 
-   369                          ;
-   370                          ; [ segment ][  from  ][  to   ]
-   371                          ; [ 6  -  4 ][ 3 - 2  ][ 1 - 0 ];
-   372                          ;
-   373                          ; segments:
-   374                          ;  0: Step 0 - Nose
-   375                          ;  1: Step 0 - Head
-   376                          ;  2: Step 0 - Body
-   377                          ;  3: Step 0 - Tail
-   378                          ;  4: Step 1 - Head
-   379                          ;  5: Step 1 - Body
-   380                          ;  6: Step 1 - Tail
-   381                          ;  7: Step 1 - Tip
-   382                          ;
-   383                          ; from and to:
-   384                          ;  0: Up
-   385                          ;  1: Left
-   386                          ;  2: Down
-   387                          ;  3: Right
-   388                          ;
-   389                          
-   390                          !align 255,0
-   391                          snakeTileMap:
-   392  1200 3b                 !byte 59; Nose_Up_0
-   393  1201 00                 !byte 0
-   394  1202 00                 !byte 0
-   395  1203 00                 !byte 0
-   396  1204 00                 !byte 0
-   397  1205 39                 !byte 57; Nose_Left_0
-   398  1206 00                 !byte 0
-   399  1207 00                 !byte 0
-   400  1208 00                 !byte 0
-   401  1209 00                 !byte 0
-   402  120a 38                 !byte 56; Nose_Down_0
-   403  120b 00                 !byte 0
-   404  120c 00                 !byte 0
-   405  120d 00                 !byte 0
-   406  120e 00                 !byte 0
-   407  120f 3a                 !byte 58; Nose_Right_0
-   408  1210 32                 !byte 50; Head_Up_0
-   409  1211 34                 !byte 52; Head_UpLeft_0
-   410  1212 00                 !byte 0
-   411  1213 36                 !byte 54; Head_UpRight_0
-   412  1214 2a                 !byte 42; Head_LeftUp_0
-   413  1215 26                 !byte 38; Head_Left_0
-   414  1216 28                 !byte 40; Head_LeftDown_0
-   415  1217 00                 !byte 0
-   416  1218 00                 !byte 0
-   417  1219 22                 !byte 34; Head_DownLeft_0
-   418  121a 20                 !byte 32; Head_Down_0
-   419  121b 24                 !byte 36; Head_DownRight_0
-   420  121c 30                 !byte 48; Head_RightUp_0
-   421  121d 00                 !byte 0
-   422  121e 2e                 !byte 46; Head_RightDown_0
-   423  121f 2c                 !byte 44; Head_Right_0
-   424  1220 1a                 !byte 26; Body_Up_0
-   425  1221 1c                 !byte 28; Body_UpLeft_0
-   426  1222 00                 !byte 0
-   427  1223 1e                 !byte 30; Body_UpRight_0
-   428  1224 12                 !byte 18; Body_LeftUp_0
-   429  1225 0e                 !byte 14; Body_Left_0
-   430  1226 10                 !byte 16; Body_LeftDown_0
-   431  1227 00                 !byte 0
-   432  1228 00                 !byte 0
-   433  1229 0a                 !byte 10; Body_DownLeft_0
-   434  122a 08                 !byte 8; Body_Down_0
-   435  122b 0c                 !byte 12; Body_DownRight_0
-   436  122c 18                 !byte 24; Body_RightUp_0
-   437  122d 00                 !byte 0
-   438  122e 16                 !byte 22; Body_RightDown_0
-   439  122f 14                 !byte 20; Body_Right_0
-   440  1230 4e                 !byte 78; Tail_Up_0
-   441  1231 50                 !byte 80; Tail_UpLeft_0
-   442  1232 00                 !byte 0
-   443  1233 52                 !byte 82; Tail_UpRight_0
-   444  1234 46                 !byte 70; Tail_LeftUp_0
-   445  1235 42                 !byte 66; Tail_Left_0
-   446  1236 44                 !byte 68; Tail_LeftDown_0
-   447  1237 00                 !byte 0
-   448  1238 00                 !byte 0
-   449  1239 3e                 !byte 62; Tail_DownLeft_0
-   450  123a 3c                 !byte 60; Tail_Down_0
-   451  123b 40                 !byte 64; Tail_DownRight_0
-   452  123c 4c                 !byte 76; Tail_RightUp_0
-   453  123d 00                 !byte 0
-   454  123e 4a                 !byte 74; Tail_RightDown_0
-   455  123f 48                 !byte 72; Tail_Right_0
-   456  1240 33                 !byte 51; Head_Up_1
-   457  1241 35                 !byte 53; Head_UpLeft_1
-   458  1242 00                 !byte 0
-   459  1243 37                 !byte 55; Head_UpRight_1
-   460  1244 2b                 !byte 43; Head_LeftUp_1
-   461  1245 27                 !byte 39; Head_Left_1
-   462  1246 29                 !byte 41; Head_LeftDown_1
-   463  1247 00                 !byte 0
-   464  1248 00                 !byte 0
-   465  1249 23                 !byte 35; Head_DownLeft_1
-   466  124a 21                 !byte 33; Head_Down_1
-   467  124b 25                 !byte 37; Head_DownRight_1
-   468  124c 31                 !byte 49; Head_RightUp_1
-   469  124d 00                 !byte 0
-   470  124e 2f                 !byte 47; Head_RightDown_1
-   471  124f 2d                 !byte 45; Head_Right_1
-   472  1250 1b                 !byte 27; Body_Up_1
-   473  1251 1d                 !byte 29; Body_UpLeft_1
-   474  1252 00                 !byte 0
-   475  1253 1f                 !byte 31; Body_UpRight_1
-   476  1254 13                 !byte 19; Body_LeftUp_1
-   477  1255 0f                 !byte 15; Body_Left_1
-   478  1256 11                 !byte 17; Body_LeftDown_1
-   479  1257 00                 !byte 0
-   480  1258 00                 !byte 0
-   481  1259 0b                 !byte 11; Body_DownLeft_1
-   482  125a 09                 !byte 9; Body_Down_1
-   483  125b 0d                 !byte 13; Body_DownRight_1
-   484  125c 19                 !byte 25; Body_RightUp_1
-   485  125d 00                 !byte 0
-   486  125e 17                 !byte 23; Body_RightDown_1
-   487  125f 15                 !byte 21; Body_Right_1
-   488  1260 4f                 !byte 79; Tail_Up_1
-   489  1261 51                 !byte 81; Tail_UpLeft_1
-   490  1262 00                 !byte 0
-   491  1263 53                 !byte 83; Tail_UpRight_1
-   492  1264 47                 !byte 71; Tail_LeftUp_1
-   493  1265 43                 !byte 67; Tail_Left_1
-   494  1266 45                 !byte 69; Tail_LeftDown_1
-   495  1267 00                 !byte 0
-   496  1268 00                 !byte 0
-   497  1269 3f                 !byte 63; Tail_DownLeft_1
-   498  126a 3d                 !byte 61; Tail_Down_1
-   499  126b 41                 !byte 65; Tail_DownRight_1
-   500  126c 4d                 !byte 77; Tail_RightUp_1
-   501  126d 00                 !byte 0
-   502  126e 4b                 !byte 75; Tail_RightDown_1
-   503  126f 49                 !byte 73; Tail_Right_1
-   504  1270 5d                 !byte 93; Tip_Up_1
-   505  1271 5e                 !byte 94; Tip_UpLeft_1
-   506  1272 00                 !byte 0
-   507  1273 5f                 !byte 95; Tip_UpRight_1
-   508  1274 59                 !byte 89; Tip_LeftUp_1
-   509  1275 57                 !byte 87; Tip_Left_1
-   510  1276 58                 !byte 88; Tip_LeftDown_1
-   511  1277 00                 !byte 0
-   512  1278 00                 !byte 0
-   513  1279 55                 !byte 85; Tip_DownLeft_1
-   514  127a 54                 !byte 84; Tip_Down_1
-   515  127b 56                 !byte 86; Tip_DownRight_1
-   516  127c 5c                 !byte 92; Tip_RightUp_1
-   517  127d 00                 !byte 0
-   518  127e 5b                 !byte 91; Tip_RightDown_1
-   519  127f 5a                 !byte 90; Tip_Right_1
+   262                              !byte .tileOffsetUR & $ff
+   263                              !byte (tilePalette << 4) | tileFlags | (.tileOffsetUR >> 8)
+   264                              !byte .tileOffsetBL & $ff
+   265                              !byte (tilePalette << 4) | tileFlags | (.tileOffsetBL >> 8)
+   266                              !byte .tileOffsetBR & $ff
+   267                              !byte (tilePalette << 4) | tileFlags | (.tileOffsetBR >> 8)
+   268                          }
+   269                          
+   270  0f01 eaeaeaeaeaeaeaea...!align 255,0
+   271                          tileTable:
+   272  1000 6040614062406340   tileApple0:  +tileDef  0, APPLE_ADDR,  0,  1,  2,  3,  APPLE_PAL, 0              
+   273  1008 6440654066406740   tileApple1:  +tileDef  1, APPLE_ADDR,  4,  5,  6,  7,  APPLE_PAL, 0              
+   274  1010 684069406a406b40   tileApple2:  +tileDef  2, APPLE_ADDR,  8,  9, 10, 11,  APPLE_PAL, 0              
+   275  1018 6c406d406e406f40   tileApple3:  +tileDef  3, APPLE_ADDR, 12, 13, 14, 15,  APPLE_PAL, 0              
+   276  1020 6c406d406e406f40   tileApple4:  +tileDef  4, APPLE_ADDR, 12, 13, 14, 15,  APPLE_PAL, 0              
+   277  1028 684069406a406b40   tileApple5:  +tileDef  5, APPLE_ADDR,  8,  9, 10, 11,  APPLE_PAL, 0              
+   278  1030 6440654066406740   tileApple6:  +tileDef  6, APPLE_ADDR,  4,  5,  6,  7,  APPLE_PAL, 0              
+   279  1038 6040614062406340   tileApple7:  +tileDef  7, APPLE_ADDR,  0,  1,  2,  3,  APPLE_PAL, 0              
+   280                          
+   281  1040 3420352036203720   +tileDef  8, SNAKE_ADDR, 52, 53, 54, 55, SNAKE_PAL, 0
+   282  1048 3620372034203520   +tileDef  9, SNAKE_ADDR, 54, 55, 52, 53, SNAKE_PAL, 0
+   283  1050 4e284f284c284d28   +tileDef  10, SNAKE_ADDR, 78, 79, 76, 77, SNAKE_PAL, TILE_FLIP_V
+   284  1058 1c201d201e201f20   +tileDef  11, SNAKE_ADDR, 28, 29, 30, 31, SNAKE_PAL, 0
+   285  1060 4f2c4e2c4d2c4c2c   +tileDef  12, SNAKE_ADDR, 79, 78, 77, 76, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   286  1068 1d241c241f241e24   +tileDef  13, SNAKE_ADDR, 29, 28, 31, 30, SNAKE_PAL, TILE_FLIP_H
+   287  1070 0420052006200720   +tileDef  14, SNAKE_ADDR, 4, 5, 6, 7, SNAKE_PAL, 0
+   288  1078 0520042007200620   +tileDef  15, SNAKE_ADDR, 5, 4, 7, 6, SNAKE_PAL, 0
+   289  1080 1f2c1e2c1d2c1c2c   +tileDef  16, SNAKE_ADDR, 31, 30, 29, 28, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   290  1088 4d244c244f244e24   +tileDef  17, SNAKE_ADDR, 77, 76, 79, 78, SNAKE_PAL, TILE_FLIP_H
+   291  1090 1d241c241f241e24   +tileDef  18, SNAKE_ADDR, 29, 28, 31, 30, SNAKE_PAL, TILE_FLIP_H
+   292  1098 4f2c4e2c4d2c4c2c   +tileDef  19, SNAKE_ADDR, 79, 78, 77, 76, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   293  10a0 072c062c052c042c   +tileDef  20, SNAKE_ADDR, 7, 6, 5, 4, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   294  10a8 062c072c042c052c   +tileDef  21, SNAKE_ADDR, 6, 7, 4, 5, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   295  10b0 1e281f281c281d28   +tileDef  22, SNAKE_ADDR, 30, 31, 28, 29, SNAKE_PAL, TILE_FLIP_V
+   296  10b8 4c204d204e204f20   +tileDef  23, SNAKE_ADDR, 76, 77, 78, 79, SNAKE_PAL, 0
+   297  10c0 1c201d201e201f20   +tileDef  24, SNAKE_ADDR, 28, 29, 30, 31, SNAKE_PAL, 0
+   298  10c8 4e284f284c284d28   +tileDef  25, SNAKE_ADDR, 78, 79, 76, 77, SNAKE_PAL, TILE_FLIP_V
+   299  10d0 372c362c352c342c   +tileDef  26, SNAKE_ADDR, 55, 54, 53, 52, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   300  10d8 352c342c372c362c   +tileDef  27, SNAKE_ADDR, 53, 52, 55, 54, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   301  10e0 4c204d204e204f20   +tileDef  28, SNAKE_ADDR, 76, 77, 78, 79, SNAKE_PAL, 0
+   302  10e8 1e281f281c281d28   +tileDef  29, SNAKE_ADDR, 30, 31, 28, 29, SNAKE_PAL, TILE_FLIP_V
+   303  10f0 4d244c244f244e24   +tileDef  30, SNAKE_ADDR, 77, 76, 79, 78, SNAKE_PAL, TILE_FLIP_H
+   304  10f8 1f2c1e2c1d2c1c2c   +tileDef  31, SNAKE_ADDR, 31, 30, 29, 28, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   305  1100 3620372030203120   +tileDef  32, SNAKE_ADDR, 54, 55, 48, 49, SNAKE_PAL, 0
+   306  1108 3020312032203320   +tileDef  33, SNAKE_ADDR, 48, 49, 50, 51, SNAKE_PAL, 0
+   307  1110 1628172814281528   +tileDef  34, SNAKE_ADDR, 22, 23, 20, 21, SNAKE_PAL, TILE_FLIP_V
+   308  1118 0e280f280c280d28   +tileDef  35, SNAKE_ADDR, 14, 15, 12, 13, SNAKE_PAL, TILE_FLIP_V
+   309  1120 172c162c152c142c   +tileDef  36, SNAKE_ADDR, 23, 22, 21, 20, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   310  1128 0f2c0e2c0d2c0c2c   +tileDef  37, SNAKE_ADDR, 15, 14, 13, 12, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   311  1130 0120042003200620   +tileDef  38, SNAKE_ADDR, 1, 4, 3, 6, SNAKE_PAL, 0
+   312  1138 0020012002200320   +tileDef  39, SNAKE_ADDR, 0, 1, 2, 3, SNAKE_PAL, 0
+   313  1140 4420452046204720   +tileDef  40, SNAKE_ADDR, 68, 69, 70, 71, SNAKE_PAL, 0
+   314  1148 3c203d203e203f20   +tileDef  41, SNAKE_ADDR, 60, 61, 62, 63, SNAKE_PAL, 0
+   315  1150 4628472844284528   +tileDef  42, SNAKE_ADDR, 70, 71, 68, 69, SNAKE_PAL, TILE_FLIP_V
+   316  1158 3e283f283c283d28   +tileDef  43, SNAKE_ADDR, 62, 63, 60, 61, SNAKE_PAL, TILE_FLIP_V
+   317  1160 072c032c052c012c   +tileDef  44, SNAKE_ADDR, 7, 3, 5, 1, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   318  1168 032c022c012c002c   +tileDef  45, SNAKE_ADDR, 3, 2, 1, 0, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   319  1170 4524442447244624   +tileDef  46, SNAKE_ADDR, 69, 68, 71, 70, SNAKE_PAL, TILE_FLIP_H
+   320  1178 3d243c243f243e24   +tileDef  47, SNAKE_ADDR, 61, 60, 63, 62, SNAKE_PAL, TILE_FLIP_H
+   321  1180 472c462c452c442c   +tileDef  48, SNAKE_ADDR, 71, 70, 69, 68, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   322  1188 3f2c3e2c3d2c3c2c   +tileDef  49, SNAKE_ADDR, 63, 62, 61, 60, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   323  1190 312c302c352c342c   +tileDef  50, SNAKE_ADDR, 49, 48, 53, 52, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   324  1198 332c322c312c302c   +tileDef  51, SNAKE_ADDR, 51, 50, 49, 48, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   325  11a0 1420152016201720   +tileDef  52, SNAKE_ADDR, 20, 21, 22, 23, SNAKE_PAL, 0
+   326  11a8 0c200d200e200f20   +tileDef  53, SNAKE_ADDR, 12, 13, 14, 15, SNAKE_PAL, 0
+   327  11b0 1524142417241624   +tileDef  54, SNAKE_ADDR, 21, 20, 23, 22, SNAKE_PAL, TILE_FLIP_H
+   328  11b8 0d240c240f240e24   +tileDef  55, SNAKE_ADDR, 13, 12, 15, 14, SNAKE_PAL, TILE_FLIP_H
+   329  11c0 3220332010201020   +tileDef  56, SNAKE_ADDR, 50, 51, 16, 16, SNAKE_PAL, 0
+   330  11c8 1020002010200220   +tileDef  57, SNAKE_ADDR, 16, 0, 16, 2, SNAKE_PAL, 0
+   331  11d0 022c102c002c102c   +tileDef  58, SNAKE_ADDR, 2, 16, 0, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   332  11d8 102c102c332c322c   +tileDef  59, SNAKE_ADDR, 16, 16, 51, 50, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   333  11e0 382039203a203b20   +tileDef  60, SNAKE_ADDR, 56, 57, 58, 59, SNAKE_PAL, 0
+   334  11e8 3a203b2036203720   +tileDef  61, SNAKE_ADDR, 58, 59, 54, 55, SNAKE_PAL, 0
+   335  11f0 192418241b241a24   +tileDef  62, SNAKE_ADDR, 25, 24, 27, 26, SNAKE_PAL, TILE_FLIP_H
+   336  11f8 5628572854285528   +tileDef  63, SNAKE_ADDR, 86, 87, 84, 85, SNAKE_PAL, TILE_FLIP_V
+   337  1200 182019201a201b20   +tileDef  64, SNAKE_ADDR, 24, 25, 26, 27, SNAKE_PAL, 0
+   338  1208 572c562c552c542c   +tileDef  65, SNAKE_ADDR, 87, 86, 85, 84, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   339  1210 082009200a200b20   +tileDef  66, SNAKE_ADDR, 8, 9, 10, 11, SNAKE_PAL, 0
+   340  1218 0520082007200a20   +tileDef  67, SNAKE_ADDR, 5, 8, 7, 10, SNAKE_PAL, 0
+   341  1220 4b2c4a2c492c482c   +tileDef  68, SNAKE_ADDR, 75, 74, 73, 72, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   342  1228 272c262c252c242c   +tileDef  69, SNAKE_ADDR, 39, 38, 37, 36, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   343  1230 492448244b244a24   +tileDef  70, SNAKE_ADDR, 73, 72, 75, 74, SNAKE_PAL, TILE_FLIP_H
+   344  1238 2524242427242624   +tileDef  71, SNAKE_ADDR, 37, 36, 39, 38, SNAKE_PAL, TILE_FLIP_H
+   345  1240 0b2c0a2c092c082c   +tileDef  72, SNAKE_ADDR, 11, 10, 9, 8, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   346  1248 0a2c072c082c052c   +tileDef  73, SNAKE_ADDR, 10, 7, 8, 5, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   347  1250 4a284b2848284928   +tileDef  74, SNAKE_ADDR, 74, 75, 72, 73, SNAKE_PAL, TILE_FLIP_V
+   348  1258 2628272824282528   +tileDef  75, SNAKE_ADDR, 38, 39, 36, 37, SNAKE_PAL, TILE_FLIP_V
+   349  1260 482049204a204b20   +tileDef  76, SNAKE_ADDR, 72, 73, 74, 75, SNAKE_PAL, 0
+   350  1268 2420252026202720   +tileDef  77, SNAKE_ADDR, 36, 37, 38, 39, SNAKE_PAL, 0
+   351  1270 3b2c3a2c392c382c   +tileDef  78, SNAKE_ADDR, 59, 58, 57, 56, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   352  1278 372c362c3b2c3a2c   +tileDef  79, SNAKE_ADDR, 55, 54, 59, 58, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   353  1280 1b2c1a2c192c182c   +tileDef  80, SNAKE_ADDR, 27, 26, 25, 24, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   354  1288 5420552056205720   +tileDef  81, SNAKE_ADDR, 84, 85, 86, 87, SNAKE_PAL, 0
+   355  1290 1a281b2818281928   +tileDef  82, SNAKE_ADDR, 26, 27, 24, 25, SNAKE_PAL, TILE_FLIP_V
+   356  1298 5524542457245624   +tileDef  83, SNAKE_ADDR, 85, 84, 87, 86, SNAKE_PAL, TILE_FLIP_H
+   357  12a0 1020102038203920   +tileDef  84, SNAKE_ADDR, 16, 16, 56, 57, SNAKE_PAL, 0
+   358  12a8 2124202423242224   +tileDef  85, SNAKE_ADDR, 33, 32, 35, 34, SNAKE_PAL, TILE_FLIP_H
+   359  12b0 2020212022202320   +tileDef  86, SNAKE_ADDR, 32, 33, 34, 35, SNAKE_PAL, 0
+   360  12b8 092010200b201020   +tileDef  87, SNAKE_ADDR, 9, 16, 11, 16, SNAKE_PAL, 0
+   361  12c0 532c522c512c502c   +tileDef  88, SNAKE_ADDR, 83, 82, 81, 80, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   362  12c8 5124502453245224   +tileDef  89, SNAKE_ADDR, 81, 80, 83, 82, SNAKE_PAL, TILE_FLIP_H
+   363  12d0 102c0b2c102c092c   +tileDef  90, SNAKE_ADDR, 16, 11, 16, 9, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   364  12d8 5228532850285128   +tileDef  91, SNAKE_ADDR, 82, 83, 80, 81, SNAKE_PAL, TILE_FLIP_V
+   365  12e0 5020512052205320   +tileDef  92, SNAKE_ADDR, 80, 81, 82, 83, SNAKE_PAL, 0
+   366  12e8 392c382c102c102c   +tileDef  93, SNAKE_ADDR, 57, 56, 16, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   367  12f0 232c222c212c202c   +tileDef  94, SNAKE_ADDR, 35, 34, 33, 32, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   368  12f8 2228232820282128   +tileDef  95, SNAKE_ADDR, 34, 35, 32, 33, SNAKE_PAL, TILE_FLIP_V
+   369  1300 1020102010201020   tileBlank:   +tileDef  96, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
+   370                          tileBlank2:
+   371                          
+   372                          
+   373                          ; Map snake segments to tile ids
+   374                          ;
+   375                          ; Snake segment ids consist of the segment type, from direction and to direction
+   376                          ; 
+   377                          ;
+   378                          ; [ segment ][  from  ][  to   ]
+   379                          ; [ 6  -  4 ][ 3 - 2  ][ 1 - 0 ];
+   380                          ;
+   381                          ; segments:
+   382                          ;  0: Step 0 - Nose
+   383                          ;  1: Step 0 - Head
+   384                          ;  2: Step 0 - Body
+   385                          ;  3: Step 0 - Tail
+   386                          ;  4: Step 1 - Head
+   387                          ;  5: Step 1 - Body
+   388                          ;  6: Step 1 - Tail
+   389                          ;  7: Step 1 - Tip
+   390                          ;
+   391                          ; from and to:
+   392                          ;  0: Up
+   393                          ;  1: Left
+   394                          ;  2: Down
+   395                          ;  3: Right
+   396                          ;
+   397                          
+   398  1308 eaeaeaeaeaeaeaea...!align 255,0
+   399                          snakeTileMap:
+   400  1400 3b                 !byte 59; Nose_Up_0
+   401  1401 00                 !byte 0
+   402  1402 00                 !byte 0
+   403  1403 00                 !byte 0
+   404  1404 00                 !byte 0
+   405  1405 39                 !byte 57; Nose_Left_0
+   406  1406 00                 !byte 0
+   407  1407 00                 !byte 0
+   408  1408 00                 !byte 0
+   409  1409 00                 !byte 0
+   410  140a 38                 !byte 56; Nose_Down_0
+   411  140b 00                 !byte 0
+   412  140c 00                 !byte 0
+   413  140d 00                 !byte 0
+   414  140e 00                 !byte 0
+   415  140f 3a                 !byte 58; Nose_Right_0
+   416  1410 32                 !byte 50; Head_Up_0
+   417  1411 34                 !byte 52; Head_UpLeft_0
+   418  1412 00                 !byte 0
+   419  1413 36                 !byte 54; Head_UpRight_0
+   420  1414 2a                 !byte 42; Head_LeftUp_0
+   421  1415 26                 !byte 38; Head_Left_0
+   422  1416 28                 !byte 40; Head_LeftDown_0
+   423  1417 00                 !byte 0
+   424  1418 00                 !byte 0
+   425  1419 22                 !byte 34; Head_DownLeft_0
+   426  141a 20                 !byte 32; Head_Down_0
+   427  141b 24                 !byte 36; Head_DownRight_0
+   428  141c 30                 !byte 48; Head_RightUp_0
+   429  141d 00                 !byte 0
+   430  141e 2e                 !byte 46; Head_RightDown_0
+   431  141f 2c                 !byte 44; Head_Right_0
+   432  1420 1a                 !byte 26; Body_Up_0
+   433  1421 1c                 !byte 28; Body_UpLeft_0
+   434  1422 00                 !byte 0
+   435  1423 1e                 !byte 30; Body_UpRight_0
+   436  1424 12                 !byte 18; Body_LeftUp_0
+   437  1425 0e                 !byte 14; Body_Left_0
+   438  1426 10                 !byte 16; Body_LeftDown_0
+   439  1427 00                 !byte 0
+   440  1428 00                 !byte 0
+   441  1429 0a                 !byte 10; Body_DownLeft_0
+   442  142a 08                 !byte 8; Body_Down_0
+   443  142b 0c                 !byte 12; Body_DownRight_0
+   444  142c 18                 !byte 24; Body_RightUp_0
+   445  142d 00                 !byte 0
+   446  142e 16                 !byte 22; Body_RightDown_0
+   447  142f 14                 !byte 20; Body_Right_0
+   448  1430 4e                 !byte 78; Tail_Up_0
+   449  1431 50                 !byte 80; Tail_UpLeft_0
+   450  1432 00                 !byte 0
+   451  1433 52                 !byte 82; Tail_UpRight_0
+   452  1434 46                 !byte 70; Tail_LeftUp_0
+   453  1435 42                 !byte 66; Tail_Left_0
+   454  1436 44                 !byte 68; Tail_LeftDown_0
+   455  1437 00                 !byte 0
+   456  1438 00                 !byte 0
+   457  1439 3e                 !byte 62; Tail_DownLeft_0
+   458  143a 3c                 !byte 60; Tail_Down_0
+   459  143b 40                 !byte 64; Tail_DownRight_0
+   460  143c 4c                 !byte 76; Tail_RightUp_0
+   461  143d 00                 !byte 0
+   462  143e 4a                 !byte 74; Tail_RightDown_0
+   463  143f 48                 !byte 72; Tail_Right_0
+   464  1440 33                 !byte 51; Head_Up_1
+   465  1441 35                 !byte 53; Head_UpLeft_1
+   466  1442 00                 !byte 0
+   467  1443 37                 !byte 55; Head_UpRight_1
+   468  1444 2b                 !byte 43; Head_LeftUp_1
+   469  1445 27                 !byte 39; Head_Left_1
+   470  1446 29                 !byte 41; Head_LeftDown_1
+   471  1447 00                 !byte 0
+   472  1448 00                 !byte 0
+   473  1449 23                 !byte 35; Head_DownLeft_1
+   474  144a 21                 !byte 33; Head_Down_1
+   475  144b 25                 !byte 37; Head_DownRight_1
+   476  144c 31                 !byte 49; Head_RightUp_1
+   477  144d 00                 !byte 0
+   478  144e 2f                 !byte 47; Head_RightDown_1
+   479  144f 2d                 !byte 45; Head_Right_1
+   480  1450 1b                 !byte 27; Body_Up_1
+   481  1451 1d                 !byte 29; Body_UpLeft_1
+   482  1452 00                 !byte 0
+   483  1453 1f                 !byte 31; Body_UpRight_1
+   484  1454 13                 !byte 19; Body_LeftUp_1
+   485  1455 0f                 !byte 15; Body_Left_1
+   486  1456 11                 !byte 17; Body_LeftDown_1
+   487  1457 00                 !byte 0
+   488  1458 00                 !byte 0
+   489  1459 0b                 !byte 11; Body_DownLeft_1
+   490  145a 09                 !byte 9; Body_Down_1
+   491  145b 0d                 !byte 13; Body_DownRight_1
+   492  145c 19                 !byte 25; Body_RightUp_1
+   493  145d 00                 !byte 0
+   494  145e 17                 !byte 23; Body_RightDown_1
+   495  145f 15                 !byte 21; Body_Right_1
+   496  1460 4f                 !byte 79; Tail_Up_1
+   497  1461 51                 !byte 81; Tail_UpLeft_1
+   498  1462 00                 !byte 0
+   499  1463 53                 !byte 83; Tail_UpRight_1
+   500  1464 47                 !byte 71; Tail_LeftUp_1
+   501  1465 43                 !byte 67; Tail_Left_1
+   502  1466 45                 !byte 69; Tail_LeftDown_1
+   503  1467 00                 !byte 0
+   504  1468 00                 !byte 0
+   505  1469 3f                 !byte 63; Tail_DownLeft_1
+   506  146a 3d                 !byte 61; Tail_Down_1
+   507  146b 41                 !byte 65; Tail_DownRight_1
+   508  146c 4d                 !byte 77; Tail_RightUp_1
+   509  146d 00                 !byte 0
+   510  146e 4b                 !byte 75; Tail_RightDown_1
+   511  146f 49                 !byte 73; Tail_Right_1
+   512  1470 5d                 !byte 93; Tip_Up_1
+   513  1471 5e                 !byte 94; Tip_UpLeft_1
+   514  1472 00                 !byte 0
+   515  1473 5f                 !byte 95; Tip_UpRight_1
+   516  1474 59                 !byte 89; Tip_LeftUp_1
+   517  1475 57                 !byte 87; Tip_Left_1
+   518  1476 58                 !byte 88; Tip_LeftDown_1
+   519  1477 00                 !byte 0
+   520  1478 00                 !byte 0
+   521  1479 55                 !byte 85; Tip_DownLeft_1
+   522  147a 54                 !byte 84; Tip_Down_1
+   523  147b 56                 !byte 86; Tip_DownRight_1
+   524  147c 5c                 !byte 92; Tip_RightUp_1
+   525  147d 00                 !byte 0
+   526  147e 5b                 !byte 91; Tip_RightDown_1
+   527  147f 5a                 !byte 90; Tip_Right_1
 
 ; ******** Source: src\snake.asm
     68                          
@@ -2690,9 +2698,9 @@
     18                          ; loop to wait for vsync
     19                          ; -----------------------------------------------------------------------------
     20                          waitForVsync:
-    21  1280 cb                   !byte $CB  ; WAI instruction
-    22  1281 a530                 lda VSYNC_FLAG
-    23  1283 d0fb                 bne waitForVsync
+    21  1480 cb                   !byte $CB  ; WAI instruction
+    22  1481 a530                 lda VSYNC_FLAG
+    23  1483 d0fb                 bne waitForVsync
     24                          
     25                            ; flow on through to the.... 
     26                          
@@ -2701,362 +2709,365 @@
     29                          ; -----------------------------------------------------------------------------
     30                          gameLoop:
     31                          
-    32  1285 c636                 dec ZP_ANIM_INDEX
-    33  1287 d003                 bne +
-    34  1289 20b813               jsr updateFrame
+    32  1485 c636                 dec ZP_ANIM_INDEX
+    33  1487 d003                 bne +
+    34  1489 20b815               jsr updateFrame
     35                          +
-    36  128c 2056ff               jsr JOYSTICK_GET
-    37  128f 6537                 adc ZP_RANDOM
-    38  1291 8537                 sta ZP_RANDOM
+    36  148c 2056ff               jsr JOYSTICK_GET
+    37  148f 6537                 adc ZP_RANDOM
+    38  1491 8537                 sta ZP_RANDOM
     39                          
-    40  1293 a901                 lda #1
-    41  1295 8530                 sta VSYNC_FLAG
+    40  1493 a901                 lda #1
+    41  1495 8530                 sta VSYNC_FLAG
     42                          
-    43  1297 80e7               	bra waitForVsync
+    43  1497 80e7               	bra waitForVsync
     44                          
     45                          doInput:
     46                           
-    47  1299 2056ff               jsr JOYSTICK_GET
-    48  129c 8908                 bit #JOY_UP
-    49  129e d032                 bne .testDown
+    47  1499 2056ff               jsr JOYSTICK_GET
+    48  149c 8908                 bit #JOY_UP
+    49  149e d032                 bne .testDown
     50                          
-    51  12a0 a533                 lda ZP_CURRENT_DIRECTION
-    52  12a2 2903                 and #3
-    53  12a4 c902                 cmp #DIR_DOWN 
-    54  12a6 f02a                 beq .testDown
-    55  12a8 0a                   asl
-    56  12a9 0a                   asl
-    57  12aa 0900                 ora #DIR_UP
-    58  12ac 48a5460aaabc0160...  +qBack ZP_QUEUE_D_INDEX
-    59  12b6 9147                 sta (ZP_QUEUE_D), y
-    60  12b8 a900                 lda #DIR_UP << 2 | DIR_UP
-    61  12ba 8533                 sta ZP_CURRENT_DIRECTION
-    62  12bc a64620ca08           +qPush ZP_QUEUE_D_INDEX
+    51  14a0 a533                 lda ZP_CURRENT_DIRECTION
+    52  14a2 2903                 and #3
+    53  14a4 c902                 cmp #DIR_DOWN 
+    54  14a6 f02a                 beq .testDown
+    55  14a8 0a                   asl
+    56  14a9 0a                   asl
+    57  14aa 0900                 ora #DIR_UP
+    58  14ac 48a5460aaabc0160...  +qBack ZP_QUEUE_D_INDEX
+    59  14b6 9147                 sta (ZP_QUEUE_D), y
+    60  14b8 a900                 lda #DIR_UP << 2 | DIR_UP
+    61  14ba 8533                 sta ZP_CURRENT_DIRECTION
+    62  14bc a64620ca08           +qPush ZP_QUEUE_D_INDEX
     63                          
-    64  12c1 a534                 lda ZP_HEAD_CELL_X
-    65  12c3 a64020ca08           +qPush ZP_QUEUE_X_INDEX
+    64  14c1 a534                 lda ZP_HEAD_CELL_X
+    65  14c3 a64020ca08           +qPush ZP_QUEUE_X_INDEX
     66                          
-    67  12c8 c635                 dec ZP_HEAD_CELL_Y
-    68  12ca a535                 lda ZP_HEAD_CELL_Y
-    69  12cc a64320ca08           +qPush ZP_QUEUE_Y_INDEX
+    67  14c8 c635                 dec ZP_HEAD_CELL_Y
+    68  14ca a535                 lda ZP_HEAD_CELL_Y
+    69  14cc a64320ca08           +qPush ZP_QUEUE_Y_INDEX
     70                          
-    71  12d1 60                   rts
+    71  14d1 60                   rts
     72                          .testDown:
-    73  12d2 8904                 bit #JOY_DOWN
-    74  12d4 d032                 bne .testRight
+    73  14d2 8904                 bit #JOY_DOWN
+    74  14d4 d032                 bne .testRight
     75                          
-    76  12d6 a533                 lda ZP_CURRENT_DIRECTION
-    77  12d8 2903                 and #3
-    78  12da c900                 cmp #DIR_UP
-    79  12dc f02a                 beq .testRight
-    80  12de 0a                   asl
-    81  12df 0a                   asl
-    82  12e0 0902                 ora #DIR_DOWN
-    83  12e2 48a5460aaabc0160...  +qBack ZP_QUEUE_D_INDEX
-    84  12ec 9147                 sta (ZP_QUEUE_D), y
-    85  12ee a90a                 lda #DIR_DOWN << 2 | DIR_DOWN
-    86  12f0 8533                 sta ZP_CURRENT_DIRECTION
-    87  12f2 a64620ca08           +qPush ZP_QUEUE_D_INDEX
+    76  14d6 a533                 lda ZP_CURRENT_DIRECTION
+    77  14d8 2903                 and #3
+    78  14da c900                 cmp #DIR_UP
+    79  14dc f02a                 beq .testRight
+    80  14de 0a                   asl
+    81  14df 0a                   asl
+    82  14e0 0902                 ora #DIR_DOWN
+    83  14e2 48a5460aaabc0160...  +qBack ZP_QUEUE_D_INDEX
+    84  14ec 9147                 sta (ZP_QUEUE_D), y
+    85  14ee a90a                 lda #DIR_DOWN << 2 | DIR_DOWN
+    86  14f0 8533                 sta ZP_CURRENT_DIRECTION
+    87  14f2 a64620ca08           +qPush ZP_QUEUE_D_INDEX
     88                          
-    89  12f7 a534                 lda ZP_HEAD_CELL_X
-    90  12f9 a64020ca08           +qPush ZP_QUEUE_X_INDEX
+    89  14f7 a534                 lda ZP_HEAD_CELL_X
+    90  14f9 a64020ca08           +qPush ZP_QUEUE_X_INDEX
     91                          
-    92  12fe e635                 inc ZP_HEAD_CELL_Y
-    93  1300 a535                 lda ZP_HEAD_CELL_Y
-    94  1302 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
+    92  14fe e635                 inc ZP_HEAD_CELL_Y
+    93  1500 a535                 lda ZP_HEAD_CELL_Y
+    94  1502 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
     95                          
-    96  1307 60                   rts
+    96  1507 60                   rts
     97                          .testRight:
-    98  1308 8901                 bit #JOY_RIGHT
-    99  130a d032                 bne .testLeft
+    98  1508 8901                 bit #JOY_RIGHT
+    99  150a d032                 bne .testLeft
    100                          
-   101  130c a533                 lda ZP_CURRENT_DIRECTION
-   102  130e 2903                 and #3
-   103  1310 c901                 cmp #DIR_LEFT
-   104  1312 f02a                 beq .testLeft
-   105  1314 0a                   asl
-   106  1315 0a                   asl
-   107  1316 0903                 ora #DIR_RIGHT
-   108  1318 48a5460aaabc0160...  +qBack ZP_QUEUE_D_INDEX
-   109  1322 9147                 sta (ZP_QUEUE_D), y
-   110  1324 a90f                 lda #DIR_RIGHT << 2 | DIR_RIGHT
-   111  1326 8533                 sta ZP_CURRENT_DIRECTION
-   112  1328 a64620ca08           +qPush ZP_QUEUE_D_INDEX
+   101  150c a533                 lda ZP_CURRENT_DIRECTION
+   102  150e 2903                 and #3
+   103  1510 c901                 cmp #DIR_LEFT
+   104  1512 f02a                 beq .testLeft
+   105  1514 0a                   asl
+   106  1515 0a                   asl
+   107  1516 0903                 ora #DIR_RIGHT
+   108  1518 48a5460aaabc0160...  +qBack ZP_QUEUE_D_INDEX
+   109  1522 9147                 sta (ZP_QUEUE_D), y
+   110  1524 a90f                 lda #DIR_RIGHT << 2 | DIR_RIGHT
+   111  1526 8533                 sta ZP_CURRENT_DIRECTION
+   112  1528 a64620ca08           +qPush ZP_QUEUE_D_INDEX
    113                            
-   114  132d e634                 inc ZP_HEAD_CELL_X
-   115  132f a534                 lda ZP_HEAD_CELL_X
-   116  1331 a64020ca08           +qPush ZP_QUEUE_X_INDEX
+   114  152d e634                 inc ZP_HEAD_CELL_X
+   115  152f a534                 lda ZP_HEAD_CELL_X
+   116  1531 a64020ca08           +qPush ZP_QUEUE_X_INDEX
    117                          
-   118  1336 a535                 lda ZP_HEAD_CELL_Y
-   119  1338 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
+   118  1536 a535                 lda ZP_HEAD_CELL_Y
+   119  1538 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
    120                          
-   121  133d 60                   rts
+   121  153d 60                   rts
    122                          .testLeft:
-   123  133e 8902                 bit #JOY_LEFT
-   124  1340 d032                 bne .doneTests
+   123  153e 8902                 bit #JOY_LEFT
+   124  1540 d032                 bne .doneTests
    125                          
-   126  1342 a533                 lda ZP_CURRENT_DIRECTION
-   127  1344 2903                 and #3
-   128  1346 c903                 cmp #DIR_RIGHT
-   129  1348 f02a                 beq .doneTests
-   130  134a 0a                   asl
-   131  134b 0a                   asl
-   132  134c 0901                 ora #DIR_LEFT
-   133  134e 48a5460aaabc0160...  +qBack ZP_QUEUE_D_INDEX
-   134  1358 9147                 sta (ZP_QUEUE_D), y
-   135  135a a905                 lda #DIR_LEFT << 2 | DIR_LEFT
-   136  135c 8533                 sta ZP_CURRENT_DIRECTION
-   137  135e a64620ca08           +qPush ZP_QUEUE_D_INDEX
+   126  1542 a533                 lda ZP_CURRENT_DIRECTION
+   127  1544 2903                 and #3
+   128  1546 c903                 cmp #DIR_RIGHT
+   129  1548 f02a                 beq .doneTests
+   130  154a 0a                   asl
+   131  154b 0a                   asl
+   132  154c 0901                 ora #DIR_LEFT
+   133  154e 48a5460aaabc0160...  +qBack ZP_QUEUE_D_INDEX
+   134  1558 9147                 sta (ZP_QUEUE_D), y
+   135  155a a905                 lda #DIR_LEFT << 2 | DIR_LEFT
+   136  155c 8533                 sta ZP_CURRENT_DIRECTION
+   137  155e a64620ca08           +qPush ZP_QUEUE_D_INDEX
    138                            
-   139  1363 c634                 dec ZP_HEAD_CELL_X
-   140  1365 a534                 lda ZP_HEAD_CELL_X
-   141  1367 a64020ca08           +qPush ZP_QUEUE_X_INDEX
+   139  1563 c634                 dec ZP_HEAD_CELL_X
+   140  1565 a534                 lda ZP_HEAD_CELL_X
+   141  1567 a64020ca08           +qPush ZP_QUEUE_X_INDEX
    142                          
-   143  136c a535                 lda ZP_HEAD_CELL_Y
-   144  136e a64320ca08           +qPush ZP_QUEUE_Y_INDEX
+   143  156c a535                 lda ZP_HEAD_CELL_Y
+   144  156e a64320ca08           +qPush ZP_QUEUE_Y_INDEX
    145                          
-   146  1373 60                   rts
+   146  1573 60                   rts
    147                          .doneTests:
    148                          
-   149  1374 a533                 lda ZP_CURRENT_DIRECTION
-   150  1376 2903                 and #3
-   151  1378 c900                 cmp #DIR_UP
-   152  137a d004                 bne +
-   153  137c c635                 dec ZP_HEAD_CELL_Y
-   154  137e 8018                 bra .doneMove
+   149  1574 a533                 lda ZP_CURRENT_DIRECTION
+   150  1576 2903                 and #3
+   151  1578 c900                 cmp #DIR_UP
+   152  157a d004                 bne +
+   153  157c c635                 dec ZP_HEAD_CELL_Y
+   154  157e 8018                 bra .doneMove
    155                          +
-   156  1380 c902                 cmp #DIR_DOWN
-   157  1382 d004                 bne +
-   158  1384 e635                 inc ZP_HEAD_CELL_Y
-   159  1386 8010                 bra .doneMove
+   156  1580 c902                 cmp #DIR_DOWN
+   157  1582 d004                 bne +
+   158  1584 e635                 inc ZP_HEAD_CELL_Y
+   159  1586 8010                 bra .doneMove
    160                          +
-   161  1388 c901                 cmp #DIR_LEFT
-   162  138a d004                 bne +
-   163  138c c634                 dec ZP_HEAD_CELL_X
-   164  138e 8008                 bra .doneMove
+   161  1588 c901                 cmp #DIR_LEFT
+   162  158a d004                 bne +
+   163  158c c634                 dec ZP_HEAD_CELL_X
+   164  158e 8008                 bra .doneMove
    165                          +
-   166  1390 c903                 cmp #DIR_RIGHT
-   167  1392 d004                 bne +
-   168  1394 e634                 inc ZP_HEAD_CELL_X
-   169  1396 8000                 bra .doneMove
+   166  1590 c903                 cmp #DIR_RIGHT
+   167  1592 d004                 bne +
+   168  1594 e634                 inc ZP_HEAD_CELL_X
+   169  1596 8000                 bra .doneMove
    170                          +
    171                          
    172                          .doneMove:
-   173  1398 a534                 lda ZP_HEAD_CELL_X
-   174  139a a64020ca08           +qPush ZP_QUEUE_X_INDEX
+   173  1598 a534                 lda ZP_HEAD_CELL_X
+   174  159a a64020ca08           +qPush ZP_QUEUE_X_INDEX
    175                          
-   176  139f a535                 lda ZP_HEAD_CELL_Y
-   177  13a1 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
+   176  159f a535                 lda ZP_HEAD_CELL_Y
+   177  15a1 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
    178                          
-   179  13a6 a533                 lda ZP_CURRENT_DIRECTION
-   180  13a8 2903                 and #3
-   181  13aa 8533                 sta ZP_CURRENT_DIRECTION
-   182  13ac 0a                   asl
-   183  13ad 0a                   asl
-   184  13ae 0533                 ora ZP_CURRENT_DIRECTION
-   185  13b0 8533                 sta ZP_CURRENT_DIRECTION
-   186  13b2 a64620ca08           +qPush ZP_QUEUE_D_INDEX
-   187  13b7 60                   rts
+   179  15a6 a533                 lda ZP_CURRENT_DIRECTION
+   180  15a8 2903                 and #3
+   181  15aa 8533                 sta ZP_CURRENT_DIRECTION
+   182  15ac 0a                   asl
+   183  15ad 0a                   asl
+   184  15ae 0533                 ora ZP_CURRENT_DIRECTION
+   185  15b0 8533                 sta ZP_CURRENT_DIRECTION
+   186  15b2 a64620ca08           +qPush ZP_QUEUE_D_INDEX
+   187  15b7 60                   rts
    188                          
    189                          
    190                          updateFrame:
-   191  13b8 a53a                 lda ZP_FRAME_INDEX
-   192  13ba 2901                 and #1
-   193  13bc d022                 bne +
+   191  15b8 a53a                 lda ZP_FRAME_INDEX
+   192  15ba 2901                 and #1
+   193  15bc d027                 bne +
    194                          
-   195  13be 209912               jsr doInput
+   195  15be 209914               jsr doInput
    196                            
-   197  13c1 a538                 lda ZP_APPLE_CELL_X
-   198  13c3 8530                 sta ZP_CURRENT_CELL_X
-   199  13c5 a539                 lda ZP_APPLE_CELL_Y
-   200  13c7 8531                 sta ZP_CURRENT_CELL_Y
-   201  13c9 20c70d               jsr setCellVram
-   202  13cc a901                 +ldaTileId tileApple
-   203  13ce 20e60d               jsr outputTile
-   204                          
-   205  13d1 a640                 ldx ZP_QUEUE_X_INDEX
-   206  13d3 200209               jsr qSize
-   207  13d6 48                   pha
-   208  13d7 200d09               jsr qIterate
-   209  13da fa                   plx  ; here, x i size, y is starting offset, a is queue msb
-   210                          
-   211  13db 20f413               jsr doStep0
-   212                          
-   213  13de 800d                 bra doneStep
-   214                          +
-   215  13e0 a640                 ldx ZP_QUEUE_X_INDEX
-   216  13e2 200209               jsr qSize
-   217  13e5 48                   pha
-   218  13e6 200d09               jsr qIterate
-   219  13e9 fa                   plx  ; here, x i size, y is starting offset, a is queue msb
-   220                          
-   221  13ea 204b14               jsr doStep1
-   222                          
-   223                          doneStep:  
-   224                          
-   225                            +dbgBreak
-   226                          
-   227  13ed e63a                 inc ZP_FRAME_INDEX
-   228                          
-   229  13ef a904                 lda #4
-   230  13f1 8536                 sta ZP_ANIM_INDEX
+   197  15c1 a538                 lda ZP_APPLE_CELL_X
+   198  15c3 8530                 sta ZP_CURRENT_CELL_X
+   199  15c5 a539                 lda ZP_APPLE_CELL_Y
+   200  15c7 8531                 sta ZP_CURRENT_CELL_Y
+   201  15c9 20c70d               jsr setCellVram
+   202  15cc a53a                 lda ZP_FRAME_INDEX
+   203  15ce 2907                 and #7
+   204  15d0 18                   clc
+   205  15d1 6901                 adc #1
+   206  15d3 20e60d               jsr outputTile
+   207                          
+   208  15d6 a640                 ldx ZP_QUEUE_X_INDEX
+   209  15d8 200209               jsr qSize
+   210  15db 48                   pha
+   211  15dc 200d09               jsr qIterate
+   212  15df fa                   plx  ; here, x i size, y is starting offset, a is queue msb
+   213                          
+   214  15e0 20f915               jsr doStep0
+   215                          
+   216  15e3 800d                 bra doneStep
+   217                          +
+   218  15e5 a640                 ldx ZP_QUEUE_X_INDEX
+   219  15e7 200209               jsr qSize
+   220  15ea 48                   pha
+   221  15eb 200d09               jsr qIterate
+   222  15ee fa                   plx  ; here, x i size, y is starting offset, a is queue msb
+   223                          
+   224  15ef 205016               jsr doStep1
+   225                          
+   226                          doneStep:  
+   227                          
+   228                            +dbgBreak
+   229                          
+   230  15f2 e63a                 inc ZP_FRAME_INDEX
    231                          
-   232  13f3 60                   rts
-   233                          
+   232  15f4 a904                 lda #4
+   233  15f6 8536                 sta ZP_ANIM_INDEX
    234                          
-   235                          doStep0:
-   236  13f4 b141                 lda (ZP_QUEUE_X), y
-   237  13f6 8530                 sta ZP_CURRENT_CELL_X
-   238  13f8 b144                 lda (ZP_QUEUE_Y), y
-   239  13fa 8531                 sta ZP_CURRENT_CELL_Y
-   240  13fc 20c70d               jsr setCellVram
-   241  13ff a900                 lda #0
-   242  1401 20e60d               jsr outputTile
-   243  1404 c8                   iny
-   244  1405 ca                   dex
-   245                          
-   246                          
-   247  1406 b141                 lda (ZP_QUEUE_X), y
-   248  1408 8530                 sta ZP_CURRENT_CELL_X
-   249  140a b144                 lda (ZP_QUEUE_Y), y
-   250  140c 8531                 sta ZP_CURRENT_CELL_Y
-   251  140e 20c70d               jsr setCellVram
-   252  1411 b147                 lda (ZP_QUEUE_D), y
-   253  1413 0930                 ora #$30  ; tail
-   254  1415 5a                   phy
-   255  1416 a8                   tay
-   256  1417 b90012               lda snakeTileMap, y
-   257  141a 7a                   ply
-   258  141b 20e60d               jsr outputTile
-   259  141e c8                   iny
-   260  141f ca                   dex
-   261                          
-   262                          
-   263                          --
-   264  1420 b141                 lda (ZP_QUEUE_X), y
-   265  1422 8530                 sta ZP_CURRENT_CELL_X
-   266  1424 b144                 lda (ZP_QUEUE_Y), y
-   267  1426 8531                 sta ZP_CURRENT_CELL_Y
-   268  1428 20c70d               jsr setCellVram
-   269  142b b147                 lda (ZP_QUEUE_D), y
-   270  142d e002                 cpx #2
-   271  142f d004                 bne +
-   272  1431 0910                 ora #$10 ; head
-   273  1433 8008                 bra .doOutput0
-   274                          +
-   275  1435 e001                 cpx #1
-   276  1437 f004                 beq +
-   277  1439 0920                 ora #$20  ; body
-   278  143b 8000                 bra .doOutput0
-   279                          +
-   280                          
-   281                          .doOutput0:
-   282  143d 5a                   phy
-   283  143e a8                   tay
-   284  143f b90012               lda snakeTileMap, y
-   285  1442 7a                   ply
-   286  1443 20e60d               jsr outputTile
-   287                          
-   288  1446 c8                   iny
-   289  1447 ca                   dex
-   290  1448 d0d6                 bne --
-   291                          
-   292  144a 60                   rts
-   293                          
-   294                          doStep1:
-   295  144b b141                 lda (ZP_QUEUE_X), y
-   296  144d 8530                 sta ZP_CURRENT_CELL_X
-   297  144f b144                 lda (ZP_QUEUE_Y), y
-   298  1451 8531                 sta ZP_CURRENT_CELL_Y
-   299  1453 20c70d               jsr setCellVram
-   300  1456 a900                 lda #0
-   301  1458 20e60d               jsr outputTile
-   302  145b c8                   iny
-   303  145c ca                   dex
-   304                          
-   305                          
-   306  145d b141                 lda (ZP_QUEUE_X), y
-   307  145f 8530                 sta ZP_CURRENT_CELL_X
-   308  1461 b144                 lda (ZP_QUEUE_Y), y
-   309  1463 8531                 sta ZP_CURRENT_CELL_Y
-   310  1465 20c70d               jsr setCellVram
-   311  1468 b147                 lda (ZP_QUEUE_D), y
-   312  146a 0970                 ora #$70  ; tip
-   313  146c 5a                   phy
-   314  146d a8                   tay
-   315  146e b90012               lda snakeTileMap, y
-   316  1471 7a                   ply
-   317  1472 20e60d               jsr outputTile
-   318  1475 c8                   iny
-   319  1476 ca                   dex
-   320                          
-   321  1477 b141                 lda (ZP_QUEUE_X), y
-   322  1479 8530                 sta ZP_CURRENT_CELL_X
-   323  147b b144                 lda (ZP_QUEUE_Y), y
-   324  147d 8531                 sta ZP_CURRENT_CELL_Y
-   325  147f 20c70d               jsr setCellVram
-   326  1482 b147                 lda (ZP_QUEUE_D), y
-   327  1484 0960                 ora #$60  ; tail
-   328  1486 5a                   phy
-   329  1487 a8                   tay
-   330  1488 b90012               lda snakeTileMap, y
-   331  148b 7a                   ply
-   332  148c 20e60d               jsr outputTile
-   333  148f c8                   iny
-   334  1490 ca                   dex
-   335                          
-   336                          
-   337                          --
-   338  1491 b141                 lda (ZP_QUEUE_X), y
-   339  1493 8530                 sta ZP_CURRENT_CELL_X
-   340  1495 b144                 lda (ZP_QUEUE_Y), y
-   341  1497 8531                 sta ZP_CURRENT_CELL_Y
-   342  1499 20c70d               jsr setCellVram
-   343  149c b147                 lda (ZP_QUEUE_D), y
-   344                            
-   345  149e 0940                 ora #$40 ; tip or body
-   346  14a0 e001                 cpx #1   
-   347  14a2 f002                 beq +
-   348  14a4 0910                 ora #$10 ; body
-   349                          +
-   350  14a6 5a                   phy
-   351  14a7 a8                   tay
-   352  14a8 b90012               lda snakeTileMap, y
-   353  14ab 7a                   ply
-   354  14ac 20e60d               jsr outputTile
-   355                          
-   356  14af c8                   iny
-   357  14b0 ca                   dex
-   358  14b1 d0de                 bne --
-   359                          
-   360                          
-   361  14b3 a534                 lda ZP_HEAD_CELL_X 
-   362  14b5 c538                 cmp ZP_APPLE_CELL_X
-   363  14b7 d018                 bne .doPop
-   364  14b9 a535                 lda ZP_HEAD_CELL_Y 
-   365  14bb c539                 cmp ZP_APPLE_CELL_Y
-   366  14bd d012                 bne .doPop
-   367                          
-   368  14bf a538                 lda ZP_APPLE_CELL_X
-   369  14c1 6537                 adc ZP_RANDOM
-   370  14c3 290f                 and #15
-   371  14c5 8538                 sta ZP_APPLE_CELL_X
-   372                          
-   373  14c7 a539                 lda ZP_APPLE_CELL_Y
-   374  14c9 6537                 adc ZP_RANDOM
-   375  14cb 290e                 and #14
-   376  14cd 8539                 sta ZP_APPLE_CELL_Y
-   377                          
-   378                          
-   379  14cf 800f                 bra .noPop
+   235  15f8 60                   rts
+   236                          
+   237                          
+   238                          doStep0:
+   239  15f9 b141                 lda (ZP_QUEUE_X), y
+   240  15fb 8530                 sta ZP_CURRENT_CELL_X
+   241  15fd b144                 lda (ZP_QUEUE_Y), y
+   242  15ff 8531                 sta ZP_CURRENT_CELL_Y
+   243  1601 20c70d               jsr setCellVram
+   244  1604 a960                 +ldaTileId tileBlank
+   245  1606 20e60d               jsr outputTile
+   246  1609 c8                   iny
+   247  160a ca                   dex
+   248                          
+   249                          
+   250  160b b141                 lda (ZP_QUEUE_X), y
+   251  160d 8530                 sta ZP_CURRENT_CELL_X
+   252  160f b144                 lda (ZP_QUEUE_Y), y
+   253  1611 8531                 sta ZP_CURRENT_CELL_Y
+   254  1613 20c70d               jsr setCellVram
+   255  1616 b147                 lda (ZP_QUEUE_D), y
+   256  1618 0930                 ora #$30  ; tail
+   257  161a 5a                   phy
+   258  161b a8                   tay
+   259  161c b90014               lda snakeTileMap, y
+   260  161f 7a                   ply
+   261  1620 20e60d               jsr outputTile
+   262  1623 c8                   iny
+   263  1624 ca                   dex
+   264                          
+   265                          
+   266                          --
+   267  1625 b141                 lda (ZP_QUEUE_X), y
+   268  1627 8530                 sta ZP_CURRENT_CELL_X
+   269  1629 b144                 lda (ZP_QUEUE_Y), y
+   270  162b 8531                 sta ZP_CURRENT_CELL_Y
+   271  162d 20c70d               jsr setCellVram
+   272  1630 b147                 lda (ZP_QUEUE_D), y
+   273  1632 e002                 cpx #2
+   274  1634 d004                 bne +
+   275  1636 0910                 ora #$10 ; head
+   276  1638 8008                 bra .doOutput0
+   277                          +
+   278  163a e001                 cpx #1
+   279  163c f004                 beq +
+   280  163e 0920                 ora #$20  ; body
+   281  1640 8000                 bra .doOutput0
+   282                          +
+   283                          
+   284                          .doOutput0:
+   285  1642 5a                   phy
+   286  1643 a8                   tay
+   287  1644 b90014               lda snakeTileMap, y
+   288  1647 7a                   ply
+   289  1648 20e60d               jsr outputTile
+   290                          
+   291  164b c8                   iny
+   292  164c ca                   dex
+   293  164d d0d6                 bne --
+   294                          
+   295  164f 60                   rts
+   296                          
+   297                          doStep1:
+   298  1650 b141                 lda (ZP_QUEUE_X), y
+   299  1652 8530                 sta ZP_CURRENT_CELL_X
+   300  1654 b144                 lda (ZP_QUEUE_Y), y
+   301  1656 8531                 sta ZP_CURRENT_CELL_Y
+   302  1658 20c70d               jsr setCellVram
+   303  165b a960                 +ldaTileId tileBlank
+   304  165d 20e60d               jsr outputTile
+   305  1660 c8                   iny
+   306  1661 ca                   dex
+   307                          
+   308                          
+   309  1662 b141                 lda (ZP_QUEUE_X), y
+   310  1664 8530                 sta ZP_CURRENT_CELL_X
+   311  1666 b144                 lda (ZP_QUEUE_Y), y
+   312  1668 8531                 sta ZP_CURRENT_CELL_Y
+   313  166a 20c70d               jsr setCellVram
+   314  166d b147                 lda (ZP_QUEUE_D), y
+   315  166f 0970                 ora #$70  ; tip
+   316  1671 5a                   phy
+   317  1672 a8                   tay
+   318  1673 b90014               lda snakeTileMap, y
+   319  1676 7a                   ply
+   320  1677 20e60d               jsr outputTile
+   321  167a c8                   iny
+   322  167b ca                   dex
+   323                          
+   324  167c b141                 lda (ZP_QUEUE_X), y
+   325  167e 8530                 sta ZP_CURRENT_CELL_X
+   326  1680 b144                 lda (ZP_QUEUE_Y), y
+   327  1682 8531                 sta ZP_CURRENT_CELL_Y
+   328  1684 20c70d               jsr setCellVram
+   329  1687 b147                 lda (ZP_QUEUE_D), y
+   330  1689 0960                 ora #$60  ; tail
+   331  168b 5a                   phy
+   332  168c a8                   tay
+   333  168d b90014               lda snakeTileMap, y
+   334  1690 7a                   ply
+   335  1691 20e60d               jsr outputTile
+   336  1694 c8                   iny
+   337  1695 ca                   dex
+   338                          
+   339                          
+   340                          --
+   341  1696 b141                 lda (ZP_QUEUE_X), y
+   342  1698 8530                 sta ZP_CURRENT_CELL_X
+   343  169a b144                 lda (ZP_QUEUE_Y), y
+   344  169c 8531                 sta ZP_CURRENT_CELL_Y
+   345  169e 20c70d               jsr setCellVram
+   346  16a1 b147                 lda (ZP_QUEUE_D), y
+   347                            
+   348  16a3 0940                 ora #$40 ; tip or body
+   349  16a5 e001                 cpx #1   
+   350  16a7 f002                 beq +
+   351  16a9 0910                 ora #$10 ; body
+   352                          +
+   353  16ab 5a                   phy
+   354  16ac a8                   tay
+   355  16ad b90014               lda snakeTileMap, y
+   356  16b0 7a                   ply
+   357  16b1 20e60d               jsr outputTile
+   358                          
+   359  16b4 c8                   iny
+   360  16b5 ca                   dex
+   361  16b6 d0de                 bne --
+   362                          
+   363                          
+   364  16b8 a534                 lda ZP_HEAD_CELL_X 
+   365  16ba c538                 cmp ZP_APPLE_CELL_X
+   366  16bc d018                 bne .doPop
+   367  16be a535                 lda ZP_HEAD_CELL_Y 
+   368  16c0 c539                 cmp ZP_APPLE_CELL_Y
+   369  16c2 d012                 bne .doPop
+   370                          
+   371  16c4 a538                 lda ZP_APPLE_CELL_X
+   372  16c6 6537                 adc ZP_RANDOM
+   373  16c8 290f                 and #15
+   374  16ca 8538                 sta ZP_APPLE_CELL_X
+   375                          
+   376  16cc a539                 lda ZP_APPLE_CELL_Y
+   377  16ce 6537                 adc ZP_RANDOM
+   378  16d0 290e                 and #14
+   379  16d2 8539                 sta ZP_APPLE_CELL_Y
    380                          
-   381                          .doPop:
-   382  14d1 a64020e308           +qPop ZP_QUEUE_X_INDEX
-   383  14d6 a64320e308           +qPop ZP_QUEUE_Y_INDEX
-   384  14db a64620e308           +qPop ZP_QUEUE_D_INDEX
-   385                          
-   386                          .noPop:
-   387                          
+   381                          
+   382  16d4 800f                 bra .noPop
+   383                          
+   384                          .doPop:
+   385  16d6 a64020e308           +qPop ZP_QUEUE_X_INDEX
+   386  16db a64320e308           +qPop ZP_QUEUE_Y_INDEX
+   387  16e0 a64620e308           +qPop ZP_QUEUE_D_INDEX
+   388                          
+   389                          .noPop:
+   390                          
 
 ; ******** Source: src\snake.asm
-    69  14e0 60                 
+    69  16e5 60                 

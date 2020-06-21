@@ -203,10 +203,18 @@ outputTile:
   phy
   asl ; 2x
   asl ; 4x
-  bcc .firstHalf
+  bcc .doFirstHalf
   asl ; 8x
   tay
-; 512+
+  bcc .thirdQuarter
+  +outputTile tileTable + $300
+  ply
+  rts
+
+.doFirstHalf:
+  bra .firstHalf
+
+.thirdQuarter
   +outputTile tileTable + $200
   ply
   rts
@@ -261,15 +269,14 @@ outputTile:
 
 !align 255,0
 tileTable:
-tileBlank:  +tileDef  0, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
-tileApple:  +tileDef  1, APPLE_ADDR, 0,  2,  1,  3,  APPLE_PAL, 0              
-
-+tileDef  2, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
-+tileDef  3, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
-+tileDef  4, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
-+tileDef  5, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
-+tileDef  6, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
-+tileDef  7, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
+tileApple0:  +tileDef  0, APPLE_ADDR,  0,  1,  2,  3,  APPLE_PAL, 0              
+tileApple1:  +tileDef  1, APPLE_ADDR,  4,  5,  6,  7,  APPLE_PAL, 0              
+tileApple2:  +tileDef  2, APPLE_ADDR,  8,  9, 10, 11,  APPLE_PAL, 0              
+tileApple3:  +tileDef  3, APPLE_ADDR, 12, 13, 14, 15,  APPLE_PAL, 0              
+tileApple4:  +tileDef  4, APPLE_ADDR, 12, 13, 14, 15,  APPLE_PAL, 0              
+tileApple5:  +tileDef  5, APPLE_ADDR,  8,  9, 10, 11,  APPLE_PAL, 0              
+tileApple6:  +tileDef  6, APPLE_ADDR,  4,  5,  6,  7,  APPLE_PAL, 0              
+tileApple7:  +tileDef  7, APPLE_ADDR,  0,  1,  2,  3,  APPLE_PAL, 0              
 
 +tileDef  8, SNAKE_ADDR, 52, 53, 54, 55, SNAKE_PAL, 0
 +tileDef  9, SNAKE_ADDR, 54, 55, 52, 53, SNAKE_PAL, 0
@@ -284,18 +291,17 @@ tileApple:  +tileDef  1, APPLE_ADDR, 0,  2,  1,  3,  APPLE_PAL, 0
 +tileDef  18, SNAKE_ADDR, 29, 28, 31, 30, SNAKE_PAL, TILE_FLIP_H
 +tileDef  19, SNAKE_ADDR, 79, 78, 77, 76, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
 +tileDef  20, SNAKE_ADDR, 7, 6, 5, 4, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-+tileDef  21, SNAKE_ADDR, 5, 4, 7, 6, SNAKE_PAL, 0
++tileDef  21, SNAKE_ADDR, 6, 7, 4, 5, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
 +tileDef  22, SNAKE_ADDR, 30, 31, 28, 29, SNAKE_PAL, TILE_FLIP_V
 +tileDef  23, SNAKE_ADDR, 76, 77, 78, 79, SNAKE_PAL, 0
 +tileDef  24, SNAKE_ADDR, 28, 29, 30, 31, SNAKE_PAL, 0
 +tileDef  25, SNAKE_ADDR, 78, 79, 76, 77, SNAKE_PAL, TILE_FLIP_V
 +tileDef  26, SNAKE_ADDR, 55, 54, 53, 52, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-+tileDef  27, SNAKE_ADDR, 54, 55, 52, 53, SNAKE_PAL, 0
++tileDef  27, SNAKE_ADDR, 53, 52, 55, 54, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
 +tileDef  28, SNAKE_ADDR, 76, 77, 78, 79, SNAKE_PAL, 0
 +tileDef  29, SNAKE_ADDR, 30, 31, 28, 29, SNAKE_PAL, TILE_FLIP_V
 +tileDef  30, SNAKE_ADDR, 77, 76, 79, 78, SNAKE_PAL, TILE_FLIP_H
 +tileDef  31, SNAKE_ADDR, 31, 30, 29, 28, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-
 +tileDef  32, SNAKE_ADDR, 54, 55, 48, 49, SNAKE_PAL, 0
 +tileDef  33, SNAKE_ADDR, 48, 49, 50, 51, SNAKE_PAL, 0
 +tileDef  34, SNAKE_ADDR, 22, 23, 20, 21, SNAKE_PAL, TILE_FLIP_V
@@ -360,6 +366,8 @@ tileApple:  +tileDef  1, APPLE_ADDR, 0,  2,  1,  3,  APPLE_PAL, 0
 +tileDef  93, SNAKE_ADDR, 57, 56, 16, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
 +tileDef  94, SNAKE_ADDR, 35, 34, 33, 32, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
 +tileDef  95, SNAKE_ADDR, 34, 35, 32, 33, SNAKE_PAL, TILE_FLIP_V
+tileBlank:   +tileDef  96, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
+tileBlank2:
 
 
 ; Map snake segments to tile ids
