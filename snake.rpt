@@ -2420,250 +2420,251 @@
    272  0f38 1020102010201020   +tileDef  7, SNAKE_ADDR, 16, 16, 16, 16, SNAKE_PAL, 0
    273                          
    274  0f40 3420352036203720   +tileDef  8, SNAKE_ADDR, 52, 53, 54, 55, SNAKE_PAL, 0
-   275  0f48 3420352036203720   +tileDef  9, SNAKE_ADDR, 52, 53, 54, 55, SNAKE_PAL, 0
+   275  0f48 3620372034203520   +tileDef  9, SNAKE_ADDR, 54, 55, 52, 53, SNAKE_PAL, 0
    276  0f50 4e284f284c284d28   +tileDef  10, SNAKE_ADDR, 78, 79, 76, 77, SNAKE_PAL, TILE_FLIP_V
-   277  0f58 4e284f284c284d28   +tileDef  11, SNAKE_ADDR, 78, 79, 76, 77, SNAKE_PAL, TILE_FLIP_V
+   277  0f58 1c201d201e201f20   +tileDef  11, SNAKE_ADDR, 28, 29, 30, 31, SNAKE_PAL, 0
    278  0f60 4f2c4e2c4d2c4c2c   +tileDef  12, SNAKE_ADDR, 79, 78, 77, 76, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   279  0f68 4f2c4e2c4d2c4c2c   +tileDef  13, SNAKE_ADDR, 79, 78, 77, 76, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   279  0f68 1d241c241f241e24   +tileDef  13, SNAKE_ADDR, 29, 28, 31, 30, SNAKE_PAL, TILE_FLIP_H
    280  0f70 0420052006200720   +tileDef  14, SNAKE_ADDR, 4, 5, 6, 7, SNAKE_PAL, 0
-   281  0f78 0420052006200720   +tileDef  15, SNAKE_ADDR, 4, 5, 6, 7, SNAKE_PAL, 0
+   281  0f78 0520042007200620   +tileDef  15, SNAKE_ADDR, 5, 4, 7, 6, SNAKE_PAL, 0
    282  0f80 1f2c1e2c1d2c1c2c   +tileDef  16, SNAKE_ADDR, 31, 30, 29, 28, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   283  0f88 1f2c1e2c1d2c1c2c   +tileDef  17, SNAKE_ADDR, 31, 30, 29, 28, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   283  0f88 4d244c244f244e24   +tileDef  17, SNAKE_ADDR, 77, 76, 79, 78, SNAKE_PAL, TILE_FLIP_H
    284  0f90 1d241c241f241e24   +tileDef  18, SNAKE_ADDR, 29, 28, 31, 30, SNAKE_PAL, TILE_FLIP_H
-   285  0f98 1d241c241f241e24   +tileDef  19, SNAKE_ADDR, 29, 28, 31, 30, SNAKE_PAL, TILE_FLIP_H
+   285  0f98 4f2c4e2c4d2c4c2c   +tileDef  19, SNAKE_ADDR, 79, 78, 77, 76, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
    286  0fa0 072c062c052c042c   +tileDef  20, SNAKE_ADDR, 7, 6, 5, 4, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   287  0fa8 072c062c052c042c   +tileDef  21, SNAKE_ADDR, 7, 6, 5, 4, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   287  0fa8 0520042007200620   +tileDef  21, SNAKE_ADDR, 5, 4, 7, 6, SNAKE_PAL, 0
    288  0fb0 1e281f281c281d28   +tileDef  22, SNAKE_ADDR, 30, 31, 28, 29, SNAKE_PAL, TILE_FLIP_V
-   289  0fb8 1e281f281c281d28   +tileDef  23, SNAKE_ADDR, 30, 31, 28, 29, SNAKE_PAL, TILE_FLIP_V
+   289  0fb8 4c204d204e204f20   +tileDef  23, SNAKE_ADDR, 76, 77, 78, 79, SNAKE_PAL, 0
    290  0fc0 1c201d201e201f20   +tileDef  24, SNAKE_ADDR, 28, 29, 30, 31, SNAKE_PAL, 0
-   291  0fc8 1c201d201e201f20   +tileDef  25, SNAKE_ADDR, 28, 29, 30, 31, SNAKE_PAL, 0
+   291  0fc8 4e284f284c284d28   +tileDef  25, SNAKE_ADDR, 78, 79, 76, 77, SNAKE_PAL, TILE_FLIP_V
    292  0fd0 372c362c352c342c   +tileDef  26, SNAKE_ADDR, 55, 54, 53, 52, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   293  0fd8 372c362c352c342c   +tileDef  27, SNAKE_ADDR, 55, 54, 53, 52, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   293  0fd8 3620372034203520   +tileDef  27, SNAKE_ADDR, 54, 55, 52, 53, SNAKE_PAL, 0
    294  0fe0 4c204d204e204f20   +tileDef  28, SNAKE_ADDR, 76, 77, 78, 79, SNAKE_PAL, 0
-   295  0fe8 4c204d204e204f20   +tileDef  29, SNAKE_ADDR, 76, 77, 78, 79, SNAKE_PAL, 0
+   295  0fe8 1e281f281c281d28   +tileDef  29, SNAKE_ADDR, 30, 31, 28, 29, SNAKE_PAL, TILE_FLIP_V
    296  0ff0 4d244c244f244e24   +tileDef  30, SNAKE_ADDR, 77, 76, 79, 78, SNAKE_PAL, TILE_FLIP_H
-   297  0ff8 4d244c244f244e24   +tileDef  31, SNAKE_ADDR, 77, 76, 79, 78, SNAKE_PAL, TILE_FLIP_H
-   298  1000 3620372030203120   +tileDef  32, SNAKE_ADDR, 54, 55, 48, 49, SNAKE_PAL, 0
-   299  1008 3020312032203320   +tileDef  33, SNAKE_ADDR, 48, 49, 50, 51, SNAKE_PAL, 0
-   300  1010 1628172814281528   +tileDef  34, SNAKE_ADDR, 22, 23, 20, 21, SNAKE_PAL, TILE_FLIP_V
-   301  1018 0e280f280c280d28   +tileDef  35, SNAKE_ADDR, 14, 15, 12, 13, SNAKE_PAL, TILE_FLIP_V
-   302  1020 172c162c152c142c   +tileDef  36, SNAKE_ADDR, 23, 22, 21, 20, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   303  1028 0f2c0e2c0d2c0c2c   +tileDef  37, SNAKE_ADDR, 15, 14, 13, 12, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   304  1030 0120042003200620   +tileDef  38, SNAKE_ADDR, 1, 4, 3, 6, SNAKE_PAL, 0
-   305  1038 0020012002200320   +tileDef  39, SNAKE_ADDR, 0, 1, 2, 3, SNAKE_PAL, 0
-   306  1040 4420452046204720   +tileDef  40, SNAKE_ADDR, 68, 69, 70, 71, SNAKE_PAL, 0
-   307  1048 3c203d203e203f20   +tileDef  41, SNAKE_ADDR, 60, 61, 62, 63, SNAKE_PAL, 0
-   308  1050 4628472844284528   +tileDef  42, SNAKE_ADDR, 70, 71, 68, 69, SNAKE_PAL, TILE_FLIP_V
-   309  1058 3e283f283c283d28   +tileDef  43, SNAKE_ADDR, 62, 63, 60, 61, SNAKE_PAL, TILE_FLIP_V
-   310  1060 072c032c052c012c   +tileDef  44, SNAKE_ADDR, 7, 3, 5, 1, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   311  1068 032c022c012c002c   +tileDef  45, SNAKE_ADDR, 3, 2, 1, 0, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   312  1070 4524442447244624   +tileDef  46, SNAKE_ADDR, 69, 68, 71, 70, SNAKE_PAL, TILE_FLIP_H
-   313  1078 3d243c243f243e24   +tileDef  47, SNAKE_ADDR, 61, 60, 63, 62, SNAKE_PAL, TILE_FLIP_H
-   314  1080 472c462c452c442c   +tileDef  48, SNAKE_ADDR, 71, 70, 69, 68, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   315  1088 3f2c3e2c3d2c3c2c   +tileDef  49, SNAKE_ADDR, 63, 62, 61, 60, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   316  1090 312c302c352c342c   +tileDef  50, SNAKE_ADDR, 49, 48, 53, 52, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   317  1098 332c322c312c302c   +tileDef  51, SNAKE_ADDR, 51, 50, 49, 48, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   318  10a0 1420152016201720   +tileDef  52, SNAKE_ADDR, 20, 21, 22, 23, SNAKE_PAL, 0
-   319  10a8 0c200d200e200f20   +tileDef  53, SNAKE_ADDR, 12, 13, 14, 15, SNAKE_PAL, 0
-   320  10b0 1524142417241624   +tileDef  54, SNAKE_ADDR, 21, 20, 23, 22, SNAKE_PAL, TILE_FLIP_H
-   321  10b8 0d240c240f240e24   +tileDef  55, SNAKE_ADDR, 13, 12, 15, 14, SNAKE_PAL, TILE_FLIP_H
-   322  10c0 3220332010201020   +tileDef  56, SNAKE_ADDR, 50, 51, 16, 16, SNAKE_PAL, 0
-   323  10c8 1020002010200220   +tileDef  57, SNAKE_ADDR, 16, 0, 16, 2, SNAKE_PAL, 0
-   324  10d0 022c102c002c102c   +tileDef  58, SNAKE_ADDR, 2, 16, 0, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   325  10d8 102c102c332c322c   +tileDef  59, SNAKE_ADDR, 16, 16, 51, 50, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   326  10e0 382039203a203b20   +tileDef  60, SNAKE_ADDR, 56, 57, 58, 59, SNAKE_PAL, 0
-   327  10e8 3a203b2036203720   +tileDef  61, SNAKE_ADDR, 58, 59, 54, 55, SNAKE_PAL, 0
-   328  10f0 192418241b241a24   +tileDef  62, SNAKE_ADDR, 25, 24, 27, 26, SNAKE_PAL, TILE_FLIP_H
-   329  10f8 5628572854285528   +tileDef  63, SNAKE_ADDR, 86, 87, 84, 85, SNAKE_PAL, TILE_FLIP_V
-   330  1100 182019201a201b20   +tileDef  64, SNAKE_ADDR, 24, 25, 26, 27, SNAKE_PAL, 0
-   331  1108 572c562c552c542c   +tileDef  65, SNAKE_ADDR, 87, 86, 85, 84, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   332  1110 082009200a200b20   +tileDef  66, SNAKE_ADDR, 8, 9, 10, 11, SNAKE_PAL, 0
-   333  1118 0520082007200a20   +tileDef  67, SNAKE_ADDR, 5, 8, 7, 10, SNAKE_PAL, 0
-   334  1120 4b2c4a2c492c482c   +tileDef  68, SNAKE_ADDR, 75, 74, 73, 72, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   335  1128 272c262c252c242c   +tileDef  69, SNAKE_ADDR, 39, 38, 37, 36, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   336  1130 492448244b244a24   +tileDef  70, SNAKE_ADDR, 73, 72, 75, 74, SNAKE_PAL, TILE_FLIP_H
-   337  1138 2524242427242624   +tileDef  71, SNAKE_ADDR, 37, 36, 39, 38, SNAKE_PAL, TILE_FLIP_H
-   338  1140 0b2c0a2c092c082c   +tileDef  72, SNAKE_ADDR, 11, 10, 9, 8, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   339  1148 0a2c072c082c052c   +tileDef  73, SNAKE_ADDR, 10, 7, 8, 5, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   340  1150 4a284b2848284928   +tileDef  74, SNAKE_ADDR, 74, 75, 72, 73, SNAKE_PAL, TILE_FLIP_V
-   341  1158 2628272824282528   +tileDef  75, SNAKE_ADDR, 38, 39, 36, 37, SNAKE_PAL, TILE_FLIP_V
-   342  1160 482049204a204b20   +tileDef  76, SNAKE_ADDR, 72, 73, 74, 75, SNAKE_PAL, 0
-   343  1168 2420252026202720   +tileDef  77, SNAKE_ADDR, 36, 37, 38, 39, SNAKE_PAL, 0
-   344  1170 3b2c3a2c392c382c   +tileDef  78, SNAKE_ADDR, 59, 58, 57, 56, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   345  1178 372c362c3b2c3a2c   +tileDef  79, SNAKE_ADDR, 55, 54, 59, 58, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   346  1180 1b2c1a2c192c182c   +tileDef  80, SNAKE_ADDR, 27, 26, 25, 24, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   347  1188 5420552056205720   +tileDef  81, SNAKE_ADDR, 84, 85, 86, 87, SNAKE_PAL, 0
-   348  1190 1a281b2818281928   +tileDef  82, SNAKE_ADDR, 26, 27, 24, 25, SNAKE_PAL, TILE_FLIP_V
-   349  1198 5524542457245624   +tileDef  83, SNAKE_ADDR, 85, 84, 87, 86, SNAKE_PAL, TILE_FLIP_H
-   350  11a0 1020102038203920   +tileDef  84, SNAKE_ADDR, 16, 16, 56, 57, SNAKE_PAL, 0
-   351  11a8 2124202423242224   +tileDef  85, SNAKE_ADDR, 33, 32, 35, 34, SNAKE_PAL, TILE_FLIP_H
-   352  11b0 2020212022202320   +tileDef  86, SNAKE_ADDR, 32, 33, 34, 35, SNAKE_PAL, 0
-   353  11b8 092010200b201020   +tileDef  87, SNAKE_ADDR, 9, 16, 11, 16, SNAKE_PAL, 0
-   354  11c0 532c522c512c502c   +tileDef  88, SNAKE_ADDR, 83, 82, 81, 80, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   355  11c8 5124502453245224   +tileDef  89, SNAKE_ADDR, 81, 80, 83, 82, SNAKE_PAL, TILE_FLIP_H
-   356  11d0 102c0b2c102c092c   +tileDef  90, SNAKE_ADDR, 16, 11, 16, 9, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   357  11d8 5228532850285128   +tileDef  91, SNAKE_ADDR, 82, 83, 80, 81, SNAKE_PAL, TILE_FLIP_V
-   358  11e0 5020512052205320   +tileDef  92, SNAKE_ADDR, 80, 81, 82, 83, SNAKE_PAL, 0
-   359  11e8 392c382c102c102c   +tileDef  93, SNAKE_ADDR, 57, 56, 16, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   360  11f0 232c222c212c202c   +tileDef  94, SNAKE_ADDR, 35, 34, 33, 32, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
-   361  11f8 2228232820282128   +tileDef  95, SNAKE_ADDR, 34, 35, 32, 33, SNAKE_PAL, TILE_FLIP_V
-   362                          
+   297  0ff8 1f2c1e2c1d2c1c2c   +tileDef  31, SNAKE_ADDR, 31, 30, 29, 28, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   298                          
+   299  1000 3620372030203120   +tileDef  32, SNAKE_ADDR, 54, 55, 48, 49, SNAKE_PAL, 0
+   300  1008 3020312032203320   +tileDef  33, SNAKE_ADDR, 48, 49, 50, 51, SNAKE_PAL, 0
+   301  1010 1628172814281528   +tileDef  34, SNAKE_ADDR, 22, 23, 20, 21, SNAKE_PAL, TILE_FLIP_V
+   302  1018 0e280f280c280d28   +tileDef  35, SNAKE_ADDR, 14, 15, 12, 13, SNAKE_PAL, TILE_FLIP_V
+   303  1020 172c162c152c142c   +tileDef  36, SNAKE_ADDR, 23, 22, 21, 20, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   304  1028 0f2c0e2c0d2c0c2c   +tileDef  37, SNAKE_ADDR, 15, 14, 13, 12, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   305  1030 0120042003200620   +tileDef  38, SNAKE_ADDR, 1, 4, 3, 6, SNAKE_PAL, 0
+   306  1038 0020012002200320   +tileDef  39, SNAKE_ADDR, 0, 1, 2, 3, SNAKE_PAL, 0
+   307  1040 4420452046204720   +tileDef  40, SNAKE_ADDR, 68, 69, 70, 71, SNAKE_PAL, 0
+   308  1048 3c203d203e203f20   +tileDef  41, SNAKE_ADDR, 60, 61, 62, 63, SNAKE_PAL, 0
+   309  1050 4628472844284528   +tileDef  42, SNAKE_ADDR, 70, 71, 68, 69, SNAKE_PAL, TILE_FLIP_V
+   310  1058 3e283f283c283d28   +tileDef  43, SNAKE_ADDR, 62, 63, 60, 61, SNAKE_PAL, TILE_FLIP_V
+   311  1060 072c032c052c012c   +tileDef  44, SNAKE_ADDR, 7, 3, 5, 1, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   312  1068 032c022c012c002c   +tileDef  45, SNAKE_ADDR, 3, 2, 1, 0, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   313  1070 4524442447244624   +tileDef  46, SNAKE_ADDR, 69, 68, 71, 70, SNAKE_PAL, TILE_FLIP_H
+   314  1078 3d243c243f243e24   +tileDef  47, SNAKE_ADDR, 61, 60, 63, 62, SNAKE_PAL, TILE_FLIP_H
+   315  1080 472c462c452c442c   +tileDef  48, SNAKE_ADDR, 71, 70, 69, 68, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   316  1088 3f2c3e2c3d2c3c2c   +tileDef  49, SNAKE_ADDR, 63, 62, 61, 60, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   317  1090 312c302c352c342c   +tileDef  50, SNAKE_ADDR, 49, 48, 53, 52, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   318  1098 332c322c312c302c   +tileDef  51, SNAKE_ADDR, 51, 50, 49, 48, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   319  10a0 1420152016201720   +tileDef  52, SNAKE_ADDR, 20, 21, 22, 23, SNAKE_PAL, 0
+   320  10a8 0c200d200e200f20   +tileDef  53, SNAKE_ADDR, 12, 13, 14, 15, SNAKE_PAL, 0
+   321  10b0 1524142417241624   +tileDef  54, SNAKE_ADDR, 21, 20, 23, 22, SNAKE_PAL, TILE_FLIP_H
+   322  10b8 0d240c240f240e24   +tileDef  55, SNAKE_ADDR, 13, 12, 15, 14, SNAKE_PAL, TILE_FLIP_H
+   323  10c0 3220332010201020   +tileDef  56, SNAKE_ADDR, 50, 51, 16, 16, SNAKE_PAL, 0
+   324  10c8 1020002010200220   +tileDef  57, SNAKE_ADDR, 16, 0, 16, 2, SNAKE_PAL, 0
+   325  10d0 022c102c002c102c   +tileDef  58, SNAKE_ADDR, 2, 16, 0, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   326  10d8 102c102c332c322c   +tileDef  59, SNAKE_ADDR, 16, 16, 51, 50, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   327  10e0 382039203a203b20   +tileDef  60, SNAKE_ADDR, 56, 57, 58, 59, SNAKE_PAL, 0
+   328  10e8 3a203b2036203720   +tileDef  61, SNAKE_ADDR, 58, 59, 54, 55, SNAKE_PAL, 0
+   329  10f0 192418241b241a24   +tileDef  62, SNAKE_ADDR, 25, 24, 27, 26, SNAKE_PAL, TILE_FLIP_H
+   330  10f8 5628572854285528   +tileDef  63, SNAKE_ADDR, 86, 87, 84, 85, SNAKE_PAL, TILE_FLIP_V
+   331  1100 182019201a201b20   +tileDef  64, SNAKE_ADDR, 24, 25, 26, 27, SNAKE_PAL, 0
+   332  1108 572c562c552c542c   +tileDef  65, SNAKE_ADDR, 87, 86, 85, 84, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   333  1110 082009200a200b20   +tileDef  66, SNAKE_ADDR, 8, 9, 10, 11, SNAKE_PAL, 0
+   334  1118 0520082007200a20   +tileDef  67, SNAKE_ADDR, 5, 8, 7, 10, SNAKE_PAL, 0
+   335  1120 4b2c4a2c492c482c   +tileDef  68, SNAKE_ADDR, 75, 74, 73, 72, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   336  1128 272c262c252c242c   +tileDef  69, SNAKE_ADDR, 39, 38, 37, 36, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   337  1130 492448244b244a24   +tileDef  70, SNAKE_ADDR, 73, 72, 75, 74, SNAKE_PAL, TILE_FLIP_H
+   338  1138 2524242427242624   +tileDef  71, SNAKE_ADDR, 37, 36, 39, 38, SNAKE_PAL, TILE_FLIP_H
+   339  1140 0b2c0a2c092c082c   +tileDef  72, SNAKE_ADDR, 11, 10, 9, 8, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   340  1148 0a2c072c082c052c   +tileDef  73, SNAKE_ADDR, 10, 7, 8, 5, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   341  1150 4a284b2848284928   +tileDef  74, SNAKE_ADDR, 74, 75, 72, 73, SNAKE_PAL, TILE_FLIP_V
+   342  1158 2628272824282528   +tileDef  75, SNAKE_ADDR, 38, 39, 36, 37, SNAKE_PAL, TILE_FLIP_V
+   343  1160 482049204a204b20   +tileDef  76, SNAKE_ADDR, 72, 73, 74, 75, SNAKE_PAL, 0
+   344  1168 2420252026202720   +tileDef  77, SNAKE_ADDR, 36, 37, 38, 39, SNAKE_PAL, 0
+   345  1170 3b2c3a2c392c382c   +tileDef  78, SNAKE_ADDR, 59, 58, 57, 56, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   346  1178 372c362c3b2c3a2c   +tileDef  79, SNAKE_ADDR, 55, 54, 59, 58, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   347  1180 1b2c1a2c192c182c   +tileDef  80, SNAKE_ADDR, 27, 26, 25, 24, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   348  1188 5420552056205720   +tileDef  81, SNAKE_ADDR, 84, 85, 86, 87, SNAKE_PAL, 0
+   349  1190 1a281b2818281928   +tileDef  82, SNAKE_ADDR, 26, 27, 24, 25, SNAKE_PAL, TILE_FLIP_V
+   350  1198 5524542457245624   +tileDef  83, SNAKE_ADDR, 85, 84, 87, 86, SNAKE_PAL, TILE_FLIP_H
+   351  11a0 1020102038203920   +tileDef  84, SNAKE_ADDR, 16, 16, 56, 57, SNAKE_PAL, 0
+   352  11a8 2124202423242224   +tileDef  85, SNAKE_ADDR, 33, 32, 35, 34, SNAKE_PAL, TILE_FLIP_H
+   353  11b0 2020212022202320   +tileDef  86, SNAKE_ADDR, 32, 33, 34, 35, SNAKE_PAL, 0
+   354  11b8 092010200b201020   +tileDef  87, SNAKE_ADDR, 9, 16, 11, 16, SNAKE_PAL, 0
+   355  11c0 532c522c512c502c   +tileDef  88, SNAKE_ADDR, 83, 82, 81, 80, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   356  11c8 5124502453245224   +tileDef  89, SNAKE_ADDR, 81, 80, 83, 82, SNAKE_PAL, TILE_FLIP_H
+   357  11d0 102c0b2c102c092c   +tileDef  90, SNAKE_ADDR, 16, 11, 16, 9, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   358  11d8 5228532850285128   +tileDef  91, SNAKE_ADDR, 82, 83, 80, 81, SNAKE_PAL, TILE_FLIP_V
+   359  11e0 5020512052205320   +tileDef  92, SNAKE_ADDR, 80, 81, 82, 83, SNAKE_PAL, 0
+   360  11e8 392c382c102c102c   +tileDef  93, SNAKE_ADDR, 57, 56, 16, 16, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   361  11f0 232c222c212c202c   +tileDef  94, SNAKE_ADDR, 35, 34, 33, 32, SNAKE_PAL, TILE_FLIP_H | TILE_FLIP_V
+   362  11f8 2228232820282128   +tileDef  95, SNAKE_ADDR, 34, 35, 32, 33, SNAKE_PAL, TILE_FLIP_V
    363                          
-   364                          ; Map snake segments to tile ids
-   365                          ;
-   366                          ; Snake segment ids consist of the segment type, from direction and to direction
-   367                          ; 
-   368                          ;
-   369                          ; [ segment ][  from  ][  to   ]
-   370                          ; [ 6  -  4 ][ 3 - 2  ][ 1 - 0 ];
-   371                          ;
-   372                          ; segments:
-   373                          ;  0: Step 0 - Nose
-   374                          ;  1: Step 0 - Head
-   375                          ;  2: Step 0 - Body
-   376                          ;  3: Step 0 - Tail
-   377                          ;  4: Step 1 - Head
-   378                          ;  5: Step 1 - Body
-   379                          ;  6: Step 1 - Tail
-   380                          ;  7: Step 1 - Tip
-   381                          ;
-   382                          ; from and to:
-   383                          ;  0: Up
-   384                          ;  1: Left
-   385                          ;  2: Down
-   386                          ;  3: Right
-   387                          ;
-   388                          
-   389                          !align 255,0
-   390                          snakeTileMap:
-   391  1200 3b                 !byte 59; Nose_Up_0
-   392  1201 00                 !byte 0
-   393  1202 00                 !byte 0
-   394  1203 00                 !byte 0
-   395  1204 00                 !byte 0
-   396  1205 39                 !byte 57; Nose_Left_0
-   397  1206 00                 !byte 0
-   398  1207 00                 !byte 0
-   399  1208 00                 !byte 0
-   400  1209 00                 !byte 0
-   401  120a 38                 !byte 56; Nose_Down_0
-   402  120b 00                 !byte 0
-   403  120c 00                 !byte 0
-   404  120d 00                 !byte 0
-   405  120e 00                 !byte 0
-   406  120f 3a                 !byte 58; Nose_Right_0
-   407  1210 32                 !byte 50; Head_Up_0
-   408  1211 34                 !byte 52; Head_UpLeft_0
-   409  1212 00                 !byte 0
-   410  1213 36                 !byte 54; Head_UpRight_0
-   411  1214 2a                 !byte 42; Head_LeftUp_0
-   412  1215 26                 !byte 38; Head_Left_0
-   413  1216 28                 !byte 40; Head_LeftDown_0
-   414  1217 00                 !byte 0
-   415  1218 00                 !byte 0
-   416  1219 22                 !byte 34; Head_DownLeft_0
-   417  121a 20                 !byte 32; Head_Down_0
-   418  121b 24                 !byte 36; Head_DownRight_0
-   419  121c 30                 !byte 48; Head_RightUp_0
-   420  121d 00                 !byte 0
-   421  121e 2e                 !byte 46; Head_RightDown_0
-   422  121f 2c                 !byte 44; Head_Right_0
-   423  1220 1a                 !byte 26; Body_Up_0
-   424  1221 1c                 !byte 28; Body_UpLeft_0
-   425  1222 00                 !byte 0
-   426  1223 1e                 !byte 30; Body_UpRight_0
-   427  1224 12                 !byte 18; Body_LeftUp_0
-   428  1225 0e                 !byte 14; Body_Left_0
-   429  1226 10                 !byte 16; Body_LeftDown_0
-   430  1227 00                 !byte 0
-   431  1228 00                 !byte 0
-   432  1229 0a                 !byte 10; Body_DownLeft_0
-   433  122a 08                 !byte 8; Body_Down_0
-   434  122b 0c                 !byte 12; Body_DownRight_0
-   435  122c 18                 !byte 24; Body_RightUp_0
-   436  122d 00                 !byte 0
-   437  122e 16                 !byte 22; Body_RightDown_0
-   438  122f 14                 !byte 20; Body_Right_0
-   439  1230 4e                 !byte 78; Tail_Up_0
-   440  1231 50                 !byte 80; Tail_UpLeft_0
-   441  1232 00                 !byte 0
-   442  1233 52                 !byte 82; Tail_UpRight_0
-   443  1234 46                 !byte 70; Tail_LeftUp_0
-   444  1235 42                 !byte 66; Tail_Left_0
-   445  1236 44                 !byte 68; Tail_LeftDown_0
-   446  1237 00                 !byte 0
-   447  1238 00                 !byte 0
-   448  1239 3e                 !byte 62; Tail_DownLeft_0
-   449  123a 3c                 !byte 60; Tail_Down_0
-   450  123b 40                 !byte 64; Tail_DownRight_0
-   451  123c 4c                 !byte 76; Tail_RightUp_0
-   452  123d 00                 !byte 0
-   453  123e 4a                 !byte 74; Tail_RightDown_0
-   454  123f 48                 !byte 72; Tail_Right_0
-   455  1240 33                 !byte 51; Head_Up_1
-   456  1241 35                 !byte 53; Head_UpLeft_1
-   457  1242 00                 !byte 0
-   458  1243 37                 !byte 55; Head_UpRight_1
-   459  1244 2b                 !byte 43; Head_LeftUp_1
-   460  1245 27                 !byte 39; Head_Left_1
-   461  1246 29                 !byte 41; Head_LeftDown_1
-   462  1247 00                 !byte 0
-   463  1248 00                 !byte 0
-   464  1249 23                 !byte 35; Head_DownLeft_1
-   465  124a 21                 !byte 33; Head_Down_1
-   466  124b 25                 !byte 37; Head_DownRight_1
-   467  124c 31                 !byte 49; Head_RightUp_1
-   468  124d 00                 !byte 0
-   469  124e 2f                 !byte 47; Head_RightDown_1
-   470  124f 2d                 !byte 45; Head_Right_1
-   471  1250 1b                 !byte 27; Body_Up_1
-   472  1251 1d                 !byte 29; Body_UpLeft_1
-   473  1252 00                 !byte 0
-   474  1253 1f                 !byte 31; Body_UpRight_1
-   475  1254 13                 !byte 19; Body_LeftUp_1
-   476  1255 0f                 !byte 15; Body_Left_1
-   477  1256 11                 !byte 17; Body_LeftDown_1
-   478  1257 00                 !byte 0
-   479  1258 00                 !byte 0
-   480  1259 0b                 !byte 11; Body_DownLeft_1
-   481  125a 09                 !byte 9; Body_Down_1
-   482  125b 0d                 !byte 13; Body_DownRight_1
-   483  125c 19                 !byte 25; Body_RightUp_1
-   484  125d 00                 !byte 0
-   485  125e 17                 !byte 23; Body_RightDown_1
-   486  125f 15                 !byte 21; Body_Right_1
-   487  1260 4f                 !byte 79; Tail_Up_1
-   488  1261 51                 !byte 81; Tail_UpLeft_1
-   489  1262 00                 !byte 0
-   490  1263 53                 !byte 83; Tail_UpRight_1
-   491  1264 47                 !byte 71; Tail_LeftUp_1
-   492  1265 43                 !byte 67; Tail_Left_1
-   493  1266 45                 !byte 69; Tail_LeftDown_1
-   494  1267 00                 !byte 0
-   495  1268 00                 !byte 0
-   496  1269 3f                 !byte 63; Tail_DownLeft_1
-   497  126a 3d                 !byte 61; Tail_Down_1
-   498  126b 41                 !byte 65; Tail_DownRight_1
-   499  126c 4d                 !byte 77; Tail_RightUp_1
-   500  126d 00                 !byte 0
-   501  126e 4b                 !byte 75; Tail_RightDown_1
-   502  126f 49                 !byte 73; Tail_Right_1
-   503  1270 5d                 !byte 93; Tip_Up_1
-   504  1271 5e                 !byte 94; Tip_UpLeft_1
-   505  1272 00                 !byte 0
-   506  1273 5f                 !byte 95; Tip_UpRight_1
-   507  1274 59                 !byte 89; Tip_LeftUp_1
-   508  1275 57                 !byte 87; Tip_Left_1
-   509  1276 58                 !byte 88; Tip_LeftDown_1
-   510  1277 00                 !byte 0
-   511  1278 00                 !byte 0
-   512  1279 55                 !byte 85; Tip_DownLeft_1
-   513  127a 54                 !byte 84; Tip_Down_1
-   514  127b 56                 !byte 86; Tip_DownRight_1
-   515  127c 5c                 !byte 92; Tip_RightUp_1
-   516  127d 00                 !byte 0
-   517  127e 5b                 !byte 91; Tip_RightDown_1
-   518  127f 5a                 !byte 90; Tip_Right_1
+   364                          
+   365                          ; Map snake segments to tile ids
+   366                          ;
+   367                          ; Snake segment ids consist of the segment type, from direction and to direction
+   368                          ; 
+   369                          ;
+   370                          ; [ segment ][  from  ][  to   ]
+   371                          ; [ 6  -  4 ][ 3 - 2  ][ 1 - 0 ];
+   372                          ;
+   373                          ; segments:
+   374                          ;  0: Step 0 - Nose
+   375                          ;  1: Step 0 - Head
+   376                          ;  2: Step 0 - Body
+   377                          ;  3: Step 0 - Tail
+   378                          ;  4: Step 1 - Head
+   379                          ;  5: Step 1 - Body
+   380                          ;  6: Step 1 - Tail
+   381                          ;  7: Step 1 - Tip
+   382                          ;
+   383                          ; from and to:
+   384                          ;  0: Up
+   385                          ;  1: Left
+   386                          ;  2: Down
+   387                          ;  3: Right
+   388                          ;
+   389                          
+   390                          !align 255,0
+   391                          snakeTileMap:
+   392  1200 3b                 !byte 59; Nose_Up_0
+   393  1201 00                 !byte 0
+   394  1202 00                 !byte 0
+   395  1203 00                 !byte 0
+   396  1204 00                 !byte 0
+   397  1205 39                 !byte 57; Nose_Left_0
+   398  1206 00                 !byte 0
+   399  1207 00                 !byte 0
+   400  1208 00                 !byte 0
+   401  1209 00                 !byte 0
+   402  120a 38                 !byte 56; Nose_Down_0
+   403  120b 00                 !byte 0
+   404  120c 00                 !byte 0
+   405  120d 00                 !byte 0
+   406  120e 00                 !byte 0
+   407  120f 3a                 !byte 58; Nose_Right_0
+   408  1210 32                 !byte 50; Head_Up_0
+   409  1211 34                 !byte 52; Head_UpLeft_0
+   410  1212 00                 !byte 0
+   411  1213 36                 !byte 54; Head_UpRight_0
+   412  1214 2a                 !byte 42; Head_LeftUp_0
+   413  1215 26                 !byte 38; Head_Left_0
+   414  1216 28                 !byte 40; Head_LeftDown_0
+   415  1217 00                 !byte 0
+   416  1218 00                 !byte 0
+   417  1219 22                 !byte 34; Head_DownLeft_0
+   418  121a 20                 !byte 32; Head_Down_0
+   419  121b 24                 !byte 36; Head_DownRight_0
+   420  121c 30                 !byte 48; Head_RightUp_0
+   421  121d 00                 !byte 0
+   422  121e 2e                 !byte 46; Head_RightDown_0
+   423  121f 2c                 !byte 44; Head_Right_0
+   424  1220 1a                 !byte 26; Body_Up_0
+   425  1221 1c                 !byte 28; Body_UpLeft_0
+   426  1222 00                 !byte 0
+   427  1223 1e                 !byte 30; Body_UpRight_0
+   428  1224 12                 !byte 18; Body_LeftUp_0
+   429  1225 0e                 !byte 14; Body_Left_0
+   430  1226 10                 !byte 16; Body_LeftDown_0
+   431  1227 00                 !byte 0
+   432  1228 00                 !byte 0
+   433  1229 0a                 !byte 10; Body_DownLeft_0
+   434  122a 08                 !byte 8; Body_Down_0
+   435  122b 0c                 !byte 12; Body_DownRight_0
+   436  122c 18                 !byte 24; Body_RightUp_0
+   437  122d 00                 !byte 0
+   438  122e 16                 !byte 22; Body_RightDown_0
+   439  122f 14                 !byte 20; Body_Right_0
+   440  1230 4e                 !byte 78; Tail_Up_0
+   441  1231 50                 !byte 80; Tail_UpLeft_0
+   442  1232 00                 !byte 0
+   443  1233 52                 !byte 82; Tail_UpRight_0
+   444  1234 46                 !byte 70; Tail_LeftUp_0
+   445  1235 42                 !byte 66; Tail_Left_0
+   446  1236 44                 !byte 68; Tail_LeftDown_0
+   447  1237 00                 !byte 0
+   448  1238 00                 !byte 0
+   449  1239 3e                 !byte 62; Tail_DownLeft_0
+   450  123a 3c                 !byte 60; Tail_Down_0
+   451  123b 40                 !byte 64; Tail_DownRight_0
+   452  123c 4c                 !byte 76; Tail_RightUp_0
+   453  123d 00                 !byte 0
+   454  123e 4a                 !byte 74; Tail_RightDown_0
+   455  123f 48                 !byte 72; Tail_Right_0
+   456  1240 33                 !byte 51; Head_Up_1
+   457  1241 35                 !byte 53; Head_UpLeft_1
+   458  1242 00                 !byte 0
+   459  1243 37                 !byte 55; Head_UpRight_1
+   460  1244 2b                 !byte 43; Head_LeftUp_1
+   461  1245 27                 !byte 39; Head_Left_1
+   462  1246 29                 !byte 41; Head_LeftDown_1
+   463  1247 00                 !byte 0
+   464  1248 00                 !byte 0
+   465  1249 23                 !byte 35; Head_DownLeft_1
+   466  124a 21                 !byte 33; Head_Down_1
+   467  124b 25                 !byte 37; Head_DownRight_1
+   468  124c 31                 !byte 49; Head_RightUp_1
+   469  124d 00                 !byte 0
+   470  124e 2f                 !byte 47; Head_RightDown_1
+   471  124f 2d                 !byte 45; Head_Right_1
+   472  1250 1b                 !byte 27; Body_Up_1
+   473  1251 1d                 !byte 29; Body_UpLeft_1
+   474  1252 00                 !byte 0
+   475  1253 1f                 !byte 31; Body_UpRight_1
+   476  1254 13                 !byte 19; Body_LeftUp_1
+   477  1255 0f                 !byte 15; Body_Left_1
+   478  1256 11                 !byte 17; Body_LeftDown_1
+   479  1257 00                 !byte 0
+   480  1258 00                 !byte 0
+   481  1259 0b                 !byte 11; Body_DownLeft_1
+   482  125a 09                 !byte 9; Body_Down_1
+   483  125b 0d                 !byte 13; Body_DownRight_1
+   484  125c 19                 !byte 25; Body_RightUp_1
+   485  125d 00                 !byte 0
+   486  125e 17                 !byte 23; Body_RightDown_1
+   487  125f 15                 !byte 21; Body_Right_1
+   488  1260 4f                 !byte 79; Tail_Up_1
+   489  1261 51                 !byte 81; Tail_UpLeft_1
+   490  1262 00                 !byte 0
+   491  1263 53                 !byte 83; Tail_UpRight_1
+   492  1264 47                 !byte 71; Tail_LeftUp_1
+   493  1265 43                 !byte 67; Tail_Left_1
+   494  1266 45                 !byte 69; Tail_LeftDown_1
+   495  1267 00                 !byte 0
+   496  1268 00                 !byte 0
+   497  1269 3f                 !byte 63; Tail_DownLeft_1
+   498  126a 3d                 !byte 61; Tail_Down_1
+   499  126b 41                 !byte 65; Tail_DownRight_1
+   500  126c 4d                 !byte 77; Tail_RightUp_1
+   501  126d 00                 !byte 0
+   502  126e 4b                 !byte 75; Tail_RightDown_1
+   503  126f 49                 !byte 73; Tail_Right_1
+   504  1270 5d                 !byte 93; Tip_Up_1
+   505  1271 5e                 !byte 94; Tip_UpLeft_1
+   506  1272 00                 !byte 0
+   507  1273 5f                 !byte 95; Tip_UpRight_1
+   508  1274 59                 !byte 89; Tip_LeftUp_1
+   509  1275 57                 !byte 87; Tip_Left_1
+   510  1276 58                 !byte 88; Tip_LeftDown_1
+   511  1277 00                 !byte 0
+   512  1278 00                 !byte 0
+   513  1279 55                 !byte 85; Tip_DownLeft_1
+   514  127a 54                 !byte 84; Tip_Down_1
+   515  127b 56                 !byte 86; Tip_DownRight_1
+   516  127c 5c                 !byte 92; Tip_RightUp_1
+   517  127d 00                 !byte 0
+   518  127e 5b                 !byte 91; Tip_RightDown_1
+   519  127f 5a                 !byte 90; Tip_Right_1
 
 ; ******** Source: src\snake.asm
     68                          
