@@ -188,6 +188,9 @@ doInput:
 
 
 updateFrame:
+  lda ZP_FRAME_INDEX
+  and #1
+  bne +
 
   jsr doInput
   
@@ -205,15 +208,41 @@ updateFrame:
   jsr qIterate
   plx  ; here, x i size, y is starting offset, a is queue msb
 
+  jsr doStep0
+
+  bra doneStep
++
+  ldx ZP_QUEUE_X_INDEX
+  jsr qSize
+  pha
+  jsr qIterate
+  plx  ; here, x i size, y is starting offset, a is queue msb
+
+  jsr doStep1
+
+doneStep:  
+
+  +dbgBreak
+
+  inc ZP_FRAME_INDEX
+
+  lda #4
+  sta ZP_ANIM_INDEX
+
+  rts
+
+
+doStep0:
   lda (ZP_QUEUE_X), y
   sta ZP_CURRENT_CELL_X
   lda (ZP_QUEUE_Y), y
   sta ZP_CURRENT_CELL_Y
   jsr setCellVram
-  +ldaTileId tileBlank
+  lda #0
   jsr outputTile
   iny
   dex
+
 
   lda (ZP_QUEUE_X), y
   sta ZP_CURRENT_CELL_X
@@ -221,8 +250,11 @@ updateFrame:
   sta ZP_CURRENT_CELL_Y
   jsr setCellVram
   lda (ZP_QUEUE_D), y
-  and #$03  ; tail
-  ora #$10
+  ora #$30  ; tail
+  phy
+  tay
+  lda snakeTileMap, y
+  ply
   jsr outputTile
   iny
   dex
@@ -235,15 +267,96 @@ updateFrame:
   sta ZP_CURRENT_CELL_Y
   jsr setCellVram
   lda (ZP_QUEUE_D), y
-  cpx #1   
+  cpx #2
   bne +
-  eor #$08  ; head
+  ora #$10 ; head
+  bra .doOutput0
 +
+  cpx #1
+  beq +
+  ora #$20  ; body
+  bra .doOutput0
++
+
+.doOutput0:
+  phy
+  tay
+  lda snakeTileMap, y
+  ply
   jsr outputTile
 
   iny
   dex
-  bne --  
+  bne --
+
+  rts
+
+doStep1:
+  lda (ZP_QUEUE_X), y
+  sta ZP_CURRENT_CELL_X
+  lda (ZP_QUEUE_Y), y
+  sta ZP_CURRENT_CELL_Y
+  jsr setCellVram
+  lda #0
+  jsr outputTile
+  iny
+  dex
+
+
+  lda (ZP_QUEUE_X), y
+  sta ZP_CURRENT_CELL_X
+  lda (ZP_QUEUE_Y), y
+  sta ZP_CURRENT_CELL_Y
+  jsr setCellVram
+  lda (ZP_QUEUE_D), y
+  ora #$70  ; tip
+  phy
+  tay
+  lda snakeTileMap, y
+  ply
+  jsr outputTile
+  iny
+  dex
+
+  lda (ZP_QUEUE_X), y
+  sta ZP_CURRENT_CELL_X
+  lda (ZP_QUEUE_Y), y
+  sta ZP_CURRENT_CELL_Y
+  jsr setCellVram
+  lda (ZP_QUEUE_D), y
+  ora #$60  ; tail
+  phy
+  tay
+  lda snakeTileMap, y
+  ply
+  jsr outputTile
+  iny
+  dex
+
+
+--
+  lda (ZP_QUEUE_X), y
+  sta ZP_CURRENT_CELL_X
+  lda (ZP_QUEUE_Y), y
+  sta ZP_CURRENT_CELL_Y
+  jsr setCellVram
+  lda (ZP_QUEUE_D), y
+  
+  ora #$40 ; tip or body
+  cpx #1   
+  beq +
+  ora #$10 ; body
++
+  phy
+  tay
+  lda snakeTileMap, y
+  ply
+  jsr outputTile
+
+  iny
+  dex
+  bne --
+
 
   lda ZP_HEAD_CELL_X 
   cmp ZP_APPLE_CELL_X
@@ -271,7 +384,5 @@ updateFrame:
   +qPop ZP_QUEUE_D_INDEX
 
 .noPop:
-  lda #6
-  sta ZP_ANIM_INDEX
 
   rts

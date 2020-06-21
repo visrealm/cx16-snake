@@ -46,6 +46,7 @@ ZP_RANDOM                = $37
 
 ZP_APPLE_CELL_X          = $38
 ZP_APPLE_CELL_Y          = $39
+ZP_FRAME_INDEX           = $3A
 
 ZP_QUEUE_X_INDEX         = $40
 ZP_QUEUE_X               = $41
