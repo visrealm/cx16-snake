@@ -6,6 +6,12 @@ Currently using [ACME Assembler](https://github.com/commanderx16).
 
 This project is very new and subject to significant changes.
 
+#### Videos
+
+<img src="img/snake.gif" alt="Snake">
+
+[![Adventures in Assembly 6 - Snake for the Commander X16.](https://img.visualrealmsoftware.com/youtube/thumb/RmOFRG29xEs)](https://youtu.be/RmOFRG29xEs "Adventures in Assembly 6 - Snake for the Commander X16.")
+
 #### Run instructions
 
 If you don't want to set up my build environment (I don't blame you). You can run the latest build by copying the files from:

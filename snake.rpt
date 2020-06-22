@@ -2704,370 +2704,306 @@
     24                          
     25                            ; flow on through to the.... 
     26                          
-    27                          ; -----------------------------------------------------------------------------
-    28                          ; main game loop
-    29                          ; -----------------------------------------------------------------------------
-    30                          gameLoop:
-    31                          
-    32  1485 c636                 dec ZP_ANIM_INDEX
-    33  1487 d003                 bne +
-    34  1489 20b815               jsr updateFrame
-    35                          +
-    36  148c 2056ff               jsr JOYSTICK_GET
-    37  148f 6537                 adc ZP_RANDOM
-    38  1491 8537                 sta ZP_RANDOM
-    39                          
-    40  1493 a901                 lda #1
-    41  1495 8530                 sta VSYNC_FLAG
+    27                          !macro testInputDir joyDir, snakeDir {
+    28                            bit #joyDir
+    29                            bne .nextDirection
+    30                            lda ZP_CURRENT_DIRECTION
+    31                            and #3
+    32                            cmp #(snakeDir + 2) % 4
+    33                            beq .nextDirection
+    34                            asl
+    35                            asl
+    36                            ora #snakeDir
+    37                            +qBack ZP_QUEUE_D_INDEX
+    38                            sta (ZP_QUEUE_D), y
+    39                            lda #snakeDir << 2 | snakeDir
+    40                            sta ZP_CURRENT_DIRECTION
+    41                            +qPush ZP_QUEUE_D_INDEX
     42                          
-    43  1497 80e7               	bra waitForVsync
-    44                          
-    45                          doInput:
-    46                           
-    47  1499 2056ff               jsr JOYSTICK_GET
-    48  149c 8908                 bit #JOY_UP
-    49  149e d032                 bne .testDown
-    50                          
-    51  14a0 a533                 lda ZP_CURRENT_DIRECTION
-    52  14a2 2903                 and #3
-    53  14a4 c902                 cmp #DIR_DOWN 
-    54  14a6 f02a                 beq .testDown
-    55  14a8 0a                   asl
-    56  14a9 0a                   asl
-    57  14aa 0900                 ora #DIR_UP
-    58  14ac 48a5460aaabc0160...  +qBack ZP_QUEUE_D_INDEX
-    59  14b6 9147                 sta (ZP_QUEUE_D), y
-    60  14b8 a900                 lda #DIR_UP << 2 | DIR_UP
-    61  14ba 8533                 sta ZP_CURRENT_DIRECTION
-    62  14bc a64620ca08           +qPush ZP_QUEUE_D_INDEX
-    63                          
-    64  14c1 a534                 lda ZP_HEAD_CELL_X
-    65  14c3 a64020ca08           +qPush ZP_QUEUE_X_INDEX
-    66                          
-    67  14c8 c635                 dec ZP_HEAD_CELL_Y
-    68  14ca a535                 lda ZP_HEAD_CELL_Y
-    69  14cc a64320ca08           +qPush ZP_QUEUE_Y_INDEX
-    70                          
-    71  14d1 60                   rts
-    72                          .testDown:
-    73  14d2 8904                 bit #JOY_DOWN
-    74  14d4 d032                 bne .testRight
-    75                          
-    76  14d6 a533                 lda ZP_CURRENT_DIRECTION
-    77  14d8 2903                 and #3
-    78  14da c900                 cmp #DIR_UP
-    79  14dc f02a                 beq .testRight
-    80  14de 0a                   asl
-    81  14df 0a                   asl
-    82  14e0 0902                 ora #DIR_DOWN
-    83  14e2 48a5460aaabc0160...  +qBack ZP_QUEUE_D_INDEX
-    84  14ec 9147                 sta (ZP_QUEUE_D), y
-    85  14ee a90a                 lda #DIR_DOWN << 2 | DIR_DOWN
-    86  14f0 8533                 sta ZP_CURRENT_DIRECTION
-    87  14f2 a64620ca08           +qPush ZP_QUEUE_D_INDEX
-    88                          
-    89  14f7 a534                 lda ZP_HEAD_CELL_X
-    90  14f9 a64020ca08           +qPush ZP_QUEUE_X_INDEX
-    91                          
-    92  14fe e635                 inc ZP_HEAD_CELL_Y
-    93  1500 a535                 lda ZP_HEAD_CELL_Y
-    94  1502 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
-    95                          
-    96  1507 60                   rts
-    97                          .testRight:
-    98  1508 8901                 bit #JOY_RIGHT
-    99  150a d032                 bne .testLeft
-   100                          
-   101  150c a533                 lda ZP_CURRENT_DIRECTION
-   102  150e 2903                 and #3
-   103  1510 c901                 cmp #DIR_LEFT
-   104  1512 f02a                 beq .testLeft
-   105  1514 0a                   asl
-   106  1515 0a                   asl
-   107  1516 0903                 ora #DIR_RIGHT
-   108  1518 48a5460aaabc0160...  +qBack ZP_QUEUE_D_INDEX
-   109  1522 9147                 sta (ZP_QUEUE_D), y
-   110  1524 a90f                 lda #DIR_RIGHT << 2 | DIR_RIGHT
-   111  1526 8533                 sta ZP_CURRENT_DIRECTION
-   112  1528 a64620ca08           +qPush ZP_QUEUE_D_INDEX
-   113                            
-   114  152d e634                 inc ZP_HEAD_CELL_X
-   115  152f a534                 lda ZP_HEAD_CELL_X
-   116  1531 a64020ca08           +qPush ZP_QUEUE_X_INDEX
-   117                          
-   118  1536 a535                 lda ZP_HEAD_CELL_Y
-   119  1538 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
-   120                          
-   121  153d 60                   rts
-   122                          .testLeft:
-   123  153e 8902                 bit #JOY_LEFT
-   124  1540 d032                 bne .doneTests
+    43                            !if snakeDir = DIR_LEFT { dec ZP_HEAD_CELL_X }
+    44                            !if snakeDir = DIR_RIGHT { inc ZP_HEAD_CELL_X }
+    45                            lda ZP_HEAD_CELL_X
+    46                            +qPush ZP_QUEUE_X_INDEX
+    47                          
+    48                            !if snakeDir = DIR_UP { dec ZP_HEAD_CELL_Y }
+    49                            !if snakeDir = DIR_DOWN { inc ZP_HEAD_CELL_Y }
+    50                            lda ZP_HEAD_CELL_Y
+    51                            +qPush ZP_QUEUE_Y_INDEX
+    52                          
+    53                            rts
+    54                          .nextDirection
+    55                          }
+    56                          
+    57                          ; -----------------------------------------------------------------------------
+    58                          ; main game loop
+    59                          ; -----------------------------------------------------------------------------
+    60                          gameLoop:
+    61                          
+    62  1485 c636                 dec ZP_ANIM_INDEX
+    63  1487 d003                 bne +
+    64  1489 20b815               jsr updateFrame
+    65                          +
+    66  148c 2056ff               jsr JOYSTICK_GET
+    67  148f 6537                 adc ZP_RANDOM
+    68  1491 8537                 sta ZP_RANDOM
+    69                          
+    70  1493 a901                 lda #1
+    71  1495 8530                 sta VSYNC_FLAG
+    72                          
+    73  1497 80e7               	bra waitForVsync
+    74                          
+    75                          doInput:
+    76                           
+    77  1499 2056ff               jsr JOYSTICK_GET
+    78  149c 8908d032a5332903...  +testInputDir JOY_UP, DIR_UP
+    79  14d2 8904d032a5332903...  +testInputDir JOY_DOWN, DIR_DOWN
+    80  1508 8902d032a5332903...  +testInputDir JOY_LEFT, DIR_LEFT
+    81  153e 8901d032a5332903...  +testInputDir JOY_RIGHT, DIR_RIGHT
+    82                          
+    83  1574 a533                 lda ZP_CURRENT_DIRECTION
+    84  1576 2903                 and #3
+    85  1578 c900                 cmp #DIR_UP
+    86  157a d004                 bne +
+    87  157c c635                 dec ZP_HEAD_CELL_Y
+    88  157e 8018                 bra .doneMove
+    89                          +
+    90  1580 c902                 cmp #DIR_DOWN
+    91  1582 d004                 bne +
+    92  1584 e635                 inc ZP_HEAD_CELL_Y
+    93  1586 8010                 bra .doneMove
+    94                          +
+    95  1588 c901                 cmp #DIR_LEFT
+    96  158a d004                 bne +
+    97  158c c634                 dec ZP_HEAD_CELL_X
+    98  158e 8008                 bra .doneMove
+    99                          +
+   100  1590 c903                 cmp #DIR_RIGHT
+   101  1592 d004                 bne +
+   102  1594 e634                 inc ZP_HEAD_CELL_X
+   103  1596 8000                 bra .doneMove
+   104                          +
+   105                          
+   106                          .doneMove:
+   107  1598 a534                 lda ZP_HEAD_CELL_X
+   108  159a a64020ca08           +qPush ZP_QUEUE_X_INDEX
+   109                          
+   110  159f a535                 lda ZP_HEAD_CELL_Y
+   111  15a1 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
+   112                          
+   113                            ; Here, we can test for collision
+   114                          
+   115  15a6 a533                 lda ZP_CURRENT_DIRECTION
+   116  15a8 2903                 and #3
+   117  15aa 8533                 sta ZP_CURRENT_DIRECTION
+   118  15ac 0a                   asl
+   119  15ad 0a                   asl
+   120  15ae 0533                 ora ZP_CURRENT_DIRECTION
+   121  15b0 8533                 sta ZP_CURRENT_DIRECTION
+   122  15b2 a64620ca08           +qPush ZP_QUEUE_D_INDEX
+   123  15b7 60                   rts
+   124                          
    125                          
-   126  1542 a533                 lda ZP_CURRENT_DIRECTION
-   127  1544 2903                 and #3
-   128  1546 c903                 cmp #DIR_RIGHT
-   129  1548 f02a                 beq .doneTests
-   130  154a 0a                   asl
-   131  154b 0a                   asl
-   132  154c 0901                 ora #DIR_LEFT
-   133  154e 48a5460aaabc0160...  +qBack ZP_QUEUE_D_INDEX
-   134  1558 9147                 sta (ZP_QUEUE_D), y
-   135  155a a905                 lda #DIR_LEFT << 2 | DIR_LEFT
-   136  155c 8533                 sta ZP_CURRENT_DIRECTION
-   137  155e a64620ca08           +qPush ZP_QUEUE_D_INDEX
-   138                            
-   139  1563 c634                 dec ZP_HEAD_CELL_X
-   140  1565 a534                 lda ZP_HEAD_CELL_X
-   141  1567 a64020ca08           +qPush ZP_QUEUE_X_INDEX
-   142                          
-   143  156c a535                 lda ZP_HEAD_CELL_Y
-   144  156e a64320ca08           +qPush ZP_QUEUE_Y_INDEX
-   145                          
-   146  1573 60                   rts
-   147                          .doneTests:
-   148                          
-   149  1574 a533                 lda ZP_CURRENT_DIRECTION
-   150  1576 2903                 and #3
-   151  1578 c900                 cmp #DIR_UP
-   152  157a d004                 bne +
-   153  157c c635                 dec ZP_HEAD_CELL_Y
-   154  157e 8018                 bra .doneMove
-   155                          +
-   156  1580 c902                 cmp #DIR_DOWN
-   157  1582 d004                 bne +
-   158  1584 e635                 inc ZP_HEAD_CELL_Y
-   159  1586 8010                 bra .doneMove
-   160                          +
-   161  1588 c901                 cmp #DIR_LEFT
-   162  158a d004                 bne +
-   163  158c c634                 dec ZP_HEAD_CELL_X
-   164  158e 8008                 bra .doneMove
-   165                          +
-   166  1590 c903                 cmp #DIR_RIGHT
-   167  1592 d004                 bne +
-   168  1594 e634                 inc ZP_HEAD_CELL_X
-   169  1596 8000                 bra .doneMove
-   170                          +
-   171                          
-   172                          .doneMove:
-   173  1598 a534                 lda ZP_HEAD_CELL_X
-   174  159a a64020ca08           +qPush ZP_QUEUE_X_INDEX
-   175                          
-   176  159f a535                 lda ZP_HEAD_CELL_Y
-   177  15a1 a64320ca08           +qPush ZP_QUEUE_Y_INDEX
-   178                          
-   179  15a6 a533                 lda ZP_CURRENT_DIRECTION
-   180  15a8 2903                 and #3
-   181  15aa 8533                 sta ZP_CURRENT_DIRECTION
-   182  15ac 0a                   asl
-   183  15ad 0a                   asl
-   184  15ae 0533                 ora ZP_CURRENT_DIRECTION
-   185  15b0 8533                 sta ZP_CURRENT_DIRECTION
-   186  15b2 a64620ca08           +qPush ZP_QUEUE_D_INDEX
-   187  15b7 60                   rts
-   188                          
-   189                          
-   190                          updateFrame:
-   191  15b8 a53a                 lda ZP_FRAME_INDEX
-   192  15ba 2901                 and #1
-   193  15bc d027                 bne +
-   194                          
-   195  15be 209914               jsr doInput
-   196                            
-   197  15c1 a538                 lda ZP_APPLE_CELL_X
-   198  15c3 8530                 sta ZP_CURRENT_CELL_X
-   199  15c5 a539                 lda ZP_APPLE_CELL_Y
-   200  15c7 8531                 sta ZP_CURRENT_CELL_Y
-   201  15c9 20c70d               jsr setCellVram
-   202  15cc a53a                 lda ZP_FRAME_INDEX
-   203  15ce 2907                 and #7
-   204  15d0 18                   clc
-   205  15d1 6901                 adc #1
-   206  15d3 20e60d               jsr outputTile
-   207                          
-   208  15d6 a640                 ldx ZP_QUEUE_X_INDEX
-   209  15d8 200209               jsr qSize
-   210  15db 48                   pha
-   211  15dc 200d09               jsr qIterate
-   212  15df fa                   plx  ; here, x i size, y is starting offset, a is queue msb
-   213                          
-   214  15e0 20f915               jsr doStep0
-   215                          
-   216  15e3 800d                 bra doneStep
-   217                          +
-   218  15e5 a640                 ldx ZP_QUEUE_X_INDEX
-   219  15e7 200209               jsr qSize
-   220  15ea 48                   pha
-   221  15eb 200d09               jsr qIterate
-   222  15ee fa                   plx  ; here, x i size, y is starting offset, a is queue msb
-   223                          
-   224  15ef 205016               jsr doStep1
-   225                          
-   226                          doneStep:  
-   227                          
-   228                            +dbgBreak
-   229                          
-   230  15f2 e63a                 inc ZP_FRAME_INDEX
-   231                          
-   232  15f4 a904                 lda #4
-   233  15f6 8536                 sta ZP_ANIM_INDEX
-   234                          
-   235  15f8 60                   rts
-   236                          
-   237                          
-   238                          doStep0:
-   239  15f9 b141                 lda (ZP_QUEUE_X), y
-   240  15fb 8530                 sta ZP_CURRENT_CELL_X
-   241  15fd b144                 lda (ZP_QUEUE_Y), y
-   242  15ff 8531                 sta ZP_CURRENT_CELL_Y
-   243  1601 20c70d               jsr setCellVram
-   244  1604 a960                 +ldaTileId tileBlank
-   245  1606 20e60d               jsr outputTile
-   246  1609 c8                   iny
-   247  160a ca                   dex
-   248                          
-   249                          
-   250  160b b141                 lda (ZP_QUEUE_X), y
-   251  160d 8530                 sta ZP_CURRENT_CELL_X
-   252  160f b144                 lda (ZP_QUEUE_Y), y
-   253  1611 8531                 sta ZP_CURRENT_CELL_Y
-   254  1613 20c70d               jsr setCellVram
-   255  1616 b147                 lda (ZP_QUEUE_D), y
-   256  1618 0930                 ora #$30  ; tail
-   257  161a 5a                   phy
-   258  161b a8                   tay
-   259  161c b90014               lda snakeTileMap, y
-   260  161f 7a                   ply
-   261  1620 20e60d               jsr outputTile
-   262  1623 c8                   iny
-   263  1624 ca                   dex
-   264                          
-   265                          
-   266                          --
-   267  1625 b141                 lda (ZP_QUEUE_X), y
-   268  1627 8530                 sta ZP_CURRENT_CELL_X
-   269  1629 b144                 lda (ZP_QUEUE_Y), y
-   270  162b 8531                 sta ZP_CURRENT_CELL_Y
-   271  162d 20c70d               jsr setCellVram
-   272  1630 b147                 lda (ZP_QUEUE_D), y
-   273  1632 e002                 cpx #2
-   274  1634 d004                 bne +
-   275  1636 0910                 ora #$10 ; head
-   276  1638 8008                 bra .doOutput0
-   277                          +
-   278  163a e001                 cpx #1
-   279  163c f004                 beq +
-   280  163e 0920                 ora #$20  ; body
-   281  1640 8000                 bra .doOutput0
-   282                          +
-   283                          
-   284                          .doOutput0:
-   285  1642 5a                   phy
-   286  1643 a8                   tay
-   287  1644 b90014               lda snakeTileMap, y
-   288  1647 7a                   ply
-   289  1648 20e60d               jsr outputTile
-   290                          
-   291  164b c8                   iny
-   292  164c ca                   dex
-   293  164d d0d6                 bne --
+   126                          updateFrame:
+   127  15b8 a53a                 lda ZP_FRAME_INDEX
+   128  15ba 2901                 and #1
+   129  15bc d027                 bne +
+   130                          
+   131  15be 209914               jsr doInput
+   132                            
+   133  15c1 a538                 lda ZP_APPLE_CELL_X
+   134  15c3 8530                 sta ZP_CURRENT_CELL_X
+   135  15c5 a539                 lda ZP_APPLE_CELL_Y
+   136  15c7 8531                 sta ZP_CURRENT_CELL_Y
+   137  15c9 20c70d               jsr setCellVram
+   138  15cc a53a                 lda ZP_FRAME_INDEX
+   139  15ce 2907                 and #7
+   140  15d0 18                   clc
+   141  15d1 6901                 adc #1
+   142  15d3 20e60d               jsr outputTile
+   143                          
+   144  15d6 a640                 ldx ZP_QUEUE_X_INDEX
+   145  15d8 200209               jsr qSize
+   146  15db 48                   pha
+   147  15dc 200d09               jsr qIterate
+   148  15df fa                   plx  ; here, x i size, y is starting offset, a is queue msb
+   149                          
+   150  15e0 20f915               jsr doStep0
+   151                          
+   152  15e3 800d                 bra doneStep
+   153                          +
+   154  15e5 a640                 ldx ZP_QUEUE_X_INDEX
+   155  15e7 200209               jsr qSize
+   156  15ea 48                   pha
+   157  15eb 200d09               jsr qIterate
+   158  15ee fa                   plx  ; here, x i size, y is starting offset, a is queue msb
+   159                          
+   160  15ef 205016               jsr doStep1
+   161                          
+   162                          doneStep:  
+   163                          
+   164                            +dbgBreak
+   165                          
+   166  15f2 e63a                 inc ZP_FRAME_INDEX
+   167                          
+   168  15f4 a904                 lda #4
+   169  15f6 8536                 sta ZP_ANIM_INDEX
+   170                          
+   171  15f8 60                   rts
+   172                          
+   173                          
+   174                          doStep0:
+   175  15f9 b141                 lda (ZP_QUEUE_X), y
+   176  15fb 8530                 sta ZP_CURRENT_CELL_X
+   177  15fd b144                 lda (ZP_QUEUE_Y), y
+   178  15ff 8531                 sta ZP_CURRENT_CELL_Y
+   179  1601 20c70d               jsr setCellVram
+   180  1604 a960                 +ldaTileId tileBlank
+   181  1606 20e60d               jsr outputTile
+   182  1609 c8                   iny
+   183  160a ca                   dex
+   184                          
+   185                          
+   186  160b b141                 lda (ZP_QUEUE_X), y
+   187  160d 8530                 sta ZP_CURRENT_CELL_X
+   188  160f b144                 lda (ZP_QUEUE_Y), y
+   189  1611 8531                 sta ZP_CURRENT_CELL_Y
+   190  1613 20c70d               jsr setCellVram
+   191  1616 b147                 lda (ZP_QUEUE_D), y
+   192  1618 0930                 ora #$30  ; tail
+   193  161a 5a                   phy
+   194  161b a8                   tay
+   195  161c b90014               lda snakeTileMap, y
+   196  161f 7a                   ply
+   197  1620 20e60d               jsr outputTile
+   198  1623 c8                   iny
+   199  1624 ca                   dex
+   200                          
+   201                          
+   202                          --
+   203  1625 b141                 lda (ZP_QUEUE_X), y
+   204  1627 8530                 sta ZP_CURRENT_CELL_X
+   205  1629 b144                 lda (ZP_QUEUE_Y), y
+   206  162b 8531                 sta ZP_CURRENT_CELL_Y
+   207  162d 20c70d               jsr setCellVram
+   208  1630 b147                 lda (ZP_QUEUE_D), y
+   209  1632 e002                 cpx #2
+   210  1634 d004                 bne +
+   211  1636 0910                 ora #$10 ; head
+   212  1638 8008                 bra .doOutput0
+   213                          +
+   214  163a e001                 cpx #1
+   215  163c f004                 beq +
+   216  163e 0920                 ora #$20  ; body
+   217  1640 8000                 bra .doOutput0
+   218                          +
+   219                          
+   220                          .doOutput0:
+   221  1642 5a                   phy
+   222  1643 a8                   tay
+   223  1644 b90014               lda snakeTileMap, y
+   224  1647 7a                   ply
+   225  1648 20e60d               jsr outputTile
+   226                          
+   227  164b c8                   iny
+   228  164c ca                   dex
+   229  164d d0d6                 bne --
+   230                          
+   231  164f 60                   rts
+   232                          
+   233                          doStep1:
+   234  1650 b141                 lda (ZP_QUEUE_X), y
+   235  1652 8530                 sta ZP_CURRENT_CELL_X
+   236  1654 b144                 lda (ZP_QUEUE_Y), y
+   237  1656 8531                 sta ZP_CURRENT_CELL_Y
+   238  1658 20c70d               jsr setCellVram
+   239  165b a960                 +ldaTileId tileBlank
+   240  165d 20e60d               jsr outputTile
+   241  1660 c8                   iny
+   242  1661 ca                   dex
+   243                          
+   244                          
+   245  1662 b141                 lda (ZP_QUEUE_X), y
+   246  1664 8530                 sta ZP_CURRENT_CELL_X
+   247  1666 b144                 lda (ZP_QUEUE_Y), y
+   248  1668 8531                 sta ZP_CURRENT_CELL_Y
+   249  166a 20c70d               jsr setCellVram
+   250  166d b147                 lda (ZP_QUEUE_D), y
+   251  166f 0970                 ora #$70  ; tip
+   252  1671 5a                   phy
+   253  1672 a8                   tay
+   254  1673 b90014               lda snakeTileMap, y
+   255  1676 7a                   ply
+   256  1677 20e60d               jsr outputTile
+   257  167a c8                   iny
+   258  167b ca                   dex
+   259                          
+   260  167c b141                 lda (ZP_QUEUE_X), y
+   261  167e 8530                 sta ZP_CURRENT_CELL_X
+   262  1680 b144                 lda (ZP_QUEUE_Y), y
+   263  1682 8531                 sta ZP_CURRENT_CELL_Y
+   264  1684 20c70d               jsr setCellVram
+   265  1687 b147                 lda (ZP_QUEUE_D), y
+   266  1689 0960                 ora #$60  ; tail
+   267  168b 5a                   phy
+   268  168c a8                   tay
+   269  168d b90014               lda snakeTileMap, y
+   270  1690 7a                   ply
+   271  1691 20e60d               jsr outputTile
+   272  1694 c8                   iny
+   273  1695 ca                   dex
+   274                          
+   275                          
+   276                          --
+   277  1696 b141                 lda (ZP_QUEUE_X), y
+   278  1698 8530                 sta ZP_CURRENT_CELL_X
+   279  169a b144                 lda (ZP_QUEUE_Y), y
+   280  169c 8531                 sta ZP_CURRENT_CELL_Y
+   281  169e 20c70d               jsr setCellVram
+   282  16a1 b147                 lda (ZP_QUEUE_D), y
+   283                            
+   284  16a3 0940                 ora #$40 ; tip or body
+   285  16a5 e001                 cpx #1   
+   286  16a7 f002                 beq +
+   287  16a9 0910                 ora #$10 ; body
+   288                          +
+   289  16ab 5a                   phy
+   290  16ac a8                   tay
+   291  16ad b90014               lda snakeTileMap, y
+   292  16b0 7a                   ply
+   293  16b1 20e60d               jsr outputTile
    294                          
-   295  164f 60                   rts
-   296                          
-   297                          doStep1:
-   298  1650 b141                 lda (ZP_QUEUE_X), y
-   299  1652 8530                 sta ZP_CURRENT_CELL_X
-   300  1654 b144                 lda (ZP_QUEUE_Y), y
-   301  1656 8531                 sta ZP_CURRENT_CELL_Y
-   302  1658 20c70d               jsr setCellVram
-   303  165b a960                 +ldaTileId tileBlank
-   304  165d 20e60d               jsr outputTile
-   305  1660 c8                   iny
-   306  1661 ca                   dex
-   307                          
-   308                          
-   309  1662 b141                 lda (ZP_QUEUE_X), y
-   310  1664 8530                 sta ZP_CURRENT_CELL_X
-   311  1666 b144                 lda (ZP_QUEUE_Y), y
-   312  1668 8531                 sta ZP_CURRENT_CELL_Y
-   313  166a 20c70d               jsr setCellVram
-   314  166d b147                 lda (ZP_QUEUE_D), y
-   315  166f 0970                 ora #$70  ; tip
-   316  1671 5a                   phy
-   317  1672 a8                   tay
-   318  1673 b90014               lda snakeTileMap, y
-   319  1676 7a                   ply
-   320  1677 20e60d               jsr outputTile
-   321  167a c8                   iny
-   322  167b ca                   dex
-   323                          
-   324  167c b141                 lda (ZP_QUEUE_X), y
-   325  167e 8530                 sta ZP_CURRENT_CELL_X
-   326  1680 b144                 lda (ZP_QUEUE_Y), y
-   327  1682 8531                 sta ZP_CURRENT_CELL_Y
-   328  1684 20c70d               jsr setCellVram
-   329  1687 b147                 lda (ZP_QUEUE_D), y
-   330  1689 0960                 ora #$60  ; tail
-   331  168b 5a                   phy
-   332  168c a8                   tay
-   333  168d b90014               lda snakeTileMap, y
-   334  1690 7a                   ply
-   335  1691 20e60d               jsr outputTile
-   336  1694 c8                   iny
-   337  1695 ca                   dex
-   338                          
-   339                          
-   340                          --
-   341  1696 b141                 lda (ZP_QUEUE_X), y
-   342  1698 8530                 sta ZP_CURRENT_CELL_X
-   343  169a b144                 lda (ZP_QUEUE_Y), y
-   344  169c 8531                 sta ZP_CURRENT_CELL_Y
-   345  169e 20c70d               jsr setCellVram
-   346  16a1 b147                 lda (ZP_QUEUE_D), y
-   347                            
-   348  16a3 0940                 ora #$40 ; tip or body
-   349  16a5 e001                 cpx #1   
-   350  16a7 f002                 beq +
-   351  16a9 0910                 ora #$10 ; body
-   352                          +
-   353  16ab 5a                   phy
-   354  16ac a8                   tay
-   355  16ad b90014               lda snakeTileMap, y
-   356  16b0 7a                   ply
-   357  16b1 20e60d               jsr outputTile
-   358                          
-   359  16b4 c8                   iny
-   360  16b5 ca                   dex
-   361  16b6 d0de                 bne --
-   362                          
-   363                          
-   364  16b8 a534                 lda ZP_HEAD_CELL_X 
-   365  16ba c538                 cmp ZP_APPLE_CELL_X
-   366  16bc d018                 bne .doPop
-   367  16be a535                 lda ZP_HEAD_CELL_Y 
-   368  16c0 c539                 cmp ZP_APPLE_CELL_Y
-   369  16c2 d012                 bne .doPop
-   370                          
-   371  16c4 a538                 lda ZP_APPLE_CELL_X
-   372  16c6 6537                 adc ZP_RANDOM
-   373  16c8 290f                 and #15
-   374  16ca 8538                 sta ZP_APPLE_CELL_X
-   375                          
-   376  16cc a539                 lda ZP_APPLE_CELL_Y
-   377  16ce 6537                 adc ZP_RANDOM
-   378  16d0 290e                 and #14
-   379  16d2 8539                 sta ZP_APPLE_CELL_Y
-   380                          
-   381                          
-   382  16d4 800f                 bra .noPop
-   383                          
-   384                          .doPop:
-   385  16d6 a64020e308           +qPop ZP_QUEUE_X_INDEX
-   386  16db a64320e308           +qPop ZP_QUEUE_Y_INDEX
-   387  16e0 a64620e308           +qPop ZP_QUEUE_D_INDEX
-   388                          
-   389                          .noPop:
-   390                          
+   295  16b4 c8                   iny
+   296  16b5 ca                   dex
+   297  16b6 d0de                 bne --
+   298                          
+   299                          
+   300  16b8 a534                 lda ZP_HEAD_CELL_X 
+   301  16ba c538                 cmp ZP_APPLE_CELL_X
+   302  16bc d018                 bne .doPop
+   303  16be a535                 lda ZP_HEAD_CELL_Y 
+   304  16c0 c539                 cmp ZP_APPLE_CELL_Y
+   305  16c2 d012                 bne .doPop
+   306                          
+   307  16c4 a538                 lda ZP_APPLE_CELL_X
+   308  16c6 6537                 adc ZP_RANDOM
+   309  16c8 290f                 and #15
+   310  16ca 8538                 sta ZP_APPLE_CELL_X
+   311                          
+   312  16cc a539                 lda ZP_APPLE_CELL_Y
+   313  16ce 6537                 adc ZP_RANDOM
+   314  16d0 290e                 and #14
+   315  16d2 8539                 sta ZP_APPLE_CELL_Y
+   316                          
+   317                          
+   318  16d4 800f                 bra .noPop
+   319                          
+   320                          .doPop:
+   321  16d6 a64020e308           +qPop ZP_QUEUE_X_INDEX
+   322  16db a64320e308           +qPop ZP_QUEUE_Y_INDEX
+   323  16e0 a64620e308           +qPop ZP_QUEUE_D_INDEX
+   324                          
+   325                          .noPop:
+   326                          
 
 ; ******** Source: src\snake.asm
     69  16e5 60                 

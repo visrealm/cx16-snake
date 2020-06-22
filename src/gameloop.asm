@@ -24,6 +24,36 @@ waitForVsync:
 
   ; flow on through to the.... 
 
+!macro testInputDir joyDir, snakeDir {
+  bit #joyDir
+  bne .nextDirection
+  lda ZP_CURRENT_DIRECTION
+  and #3
+  cmp #(snakeDir + 2) % 4
+  beq .nextDirection
+  asl
+  asl
+  ora #snakeDir
+  +qBack ZP_QUEUE_D_INDEX
+  sta (ZP_QUEUE_D), y
+  lda #snakeDir << 2 | snakeDir
+  sta ZP_CURRENT_DIRECTION
+  +qPush ZP_QUEUE_D_INDEX
+
+  !if snakeDir = DIR_LEFT { dec ZP_HEAD_CELL_X }
+  !if snakeDir = DIR_RIGHT { inc ZP_HEAD_CELL_X }
+  lda ZP_HEAD_CELL_X
+  +qPush ZP_QUEUE_X_INDEX
+
+  !if snakeDir = DIR_UP { dec ZP_HEAD_CELL_Y }
+  !if snakeDir = DIR_DOWN { inc ZP_HEAD_CELL_Y }
+  lda ZP_HEAD_CELL_Y
+  +qPush ZP_QUEUE_Y_INDEX
+
+  rts
+.nextDirection
+}
+
 ; -----------------------------------------------------------------------------
 ; main game loop
 ; -----------------------------------------------------------------------------
@@ -45,106 +75,10 @@ gameLoop:
 doInput:
  
   jsr JOYSTICK_GET
-  bit #JOY_UP
-  bne .testDown
-
-  lda ZP_CURRENT_DIRECTION
-  and #3
-  cmp #DIR_DOWN 
-  beq .testDown
-  asl
-  asl
-  ora #DIR_UP
-  +qBack ZP_QUEUE_D_INDEX
-  sta (ZP_QUEUE_D), y
-  lda #DIR_UP << 2 | DIR_UP
-  sta ZP_CURRENT_DIRECTION
-  +qPush ZP_QUEUE_D_INDEX
-
-  lda ZP_HEAD_CELL_X
-  +qPush ZP_QUEUE_X_INDEX
-
-  dec ZP_HEAD_CELL_Y
-  lda ZP_HEAD_CELL_Y
-  +qPush ZP_QUEUE_Y_INDEX
-
-  rts
-.testDown:
-  bit #JOY_DOWN
-  bne .testRight
-
-  lda ZP_CURRENT_DIRECTION
-  and #3
-  cmp #DIR_UP
-  beq .testRight
-  asl
-  asl
-  ora #DIR_DOWN
-  +qBack ZP_QUEUE_D_INDEX
-  sta (ZP_QUEUE_D), y
-  lda #DIR_DOWN << 2 | DIR_DOWN
-  sta ZP_CURRENT_DIRECTION
-  +qPush ZP_QUEUE_D_INDEX
-
-  lda ZP_HEAD_CELL_X
-  +qPush ZP_QUEUE_X_INDEX
-
-  inc ZP_HEAD_CELL_Y
-  lda ZP_HEAD_CELL_Y
-  +qPush ZP_QUEUE_Y_INDEX
-
-  rts
-.testRight:
-  bit #JOY_RIGHT
-  bne .testLeft
-
-  lda ZP_CURRENT_DIRECTION
-  and #3
-  cmp #DIR_LEFT
-  beq .testLeft
-  asl
-  asl
-  ora #DIR_RIGHT
-  +qBack ZP_QUEUE_D_INDEX
-  sta (ZP_QUEUE_D), y
-  lda #DIR_RIGHT << 2 | DIR_RIGHT
-  sta ZP_CURRENT_DIRECTION
-  +qPush ZP_QUEUE_D_INDEX
-  
-  inc ZP_HEAD_CELL_X
-  lda ZP_HEAD_CELL_X
-  +qPush ZP_QUEUE_X_INDEX
-
-  lda ZP_HEAD_CELL_Y
-  +qPush ZP_QUEUE_Y_INDEX
-
-  rts
-.testLeft:
-  bit #JOY_LEFT
-  bne .doneTests
-
-  lda ZP_CURRENT_DIRECTION
-  and #3
-  cmp #DIR_RIGHT
-  beq .doneTests
-  asl
-  asl
-  ora #DIR_LEFT
-  +qBack ZP_QUEUE_D_INDEX
-  sta (ZP_QUEUE_D), y
-  lda #DIR_LEFT << 2 | DIR_LEFT
-  sta ZP_CURRENT_DIRECTION
-  +qPush ZP_QUEUE_D_INDEX
-  
-  dec ZP_HEAD_CELL_X
-  lda ZP_HEAD_CELL_X
-  +qPush ZP_QUEUE_X_INDEX
-
-  lda ZP_HEAD_CELL_Y
-  +qPush ZP_QUEUE_Y_INDEX
-
-  rts
-.doneTests:
+  +testInputDir JOY_UP, DIR_UP
+  +testInputDir JOY_DOWN, DIR_DOWN
+  +testInputDir JOY_LEFT, DIR_LEFT
+  +testInputDir JOY_RIGHT, DIR_RIGHT
 
   lda ZP_CURRENT_DIRECTION
   and #3
@@ -175,6 +109,8 @@ doInput:
 
   lda ZP_HEAD_CELL_Y
   +qPush ZP_QUEUE_Y_INDEX
+
+  ; Here, we can test for collision
 
   lda ZP_CURRENT_DIRECTION
   and #3
