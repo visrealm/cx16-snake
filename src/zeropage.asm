@@ -63,9 +63,12 @@ ZP_QUEUE_D               = $47
 ZP_QUEUE_D_LSB           = ZP_QUEUE_D
 ZP_QUEUE_D_MSB           = ZP_QUEUE_D + 1
 
+ZP_TITLE_TEMP            = $49
+ZP_TITLE_TEMP_LSB        = ZP_TITLE_TEMP
+ZP_TITLE_TEMP_MSB        = ZP_TITLE_TEMP + 1
 
 ;
-; $35 - $7f unused
+; $4b - $7f unused
 ;
 
 ; -----------------------------------------------------------------------------
